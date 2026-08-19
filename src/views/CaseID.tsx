@@ -5,7 +5,7 @@ interface printerInfo {
   printerIP: string;
 }
 
-export default function Exp({ printerPort, printerIP }: printerInfo) {
+export default function CaseID({ printerPort, printerIP }: printerInfo) {
   const [printMode, setPrintMode] = useState<"full" | "specific">("full");
   const [selectedMunicipality, setSelectedMunicipality] = useState<
     "Itajaí" | "Cachoeirinha" | "Passo Fundo"

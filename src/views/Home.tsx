@@ -1,4 +1,4 @@
-import banner from "../assets/setup.svg";
+import banner from "../assets/windows.svg";
 
 export default function Home() {
   return (
@@ -18,16 +18,16 @@ export default function Home() {
         alt="banner"
         style={{ height: "9rem", marginBottom: "var(--spacing-1)" }}
       />
-      <p className="bold center">Impressão de etiquetas padrão ARQ</p>
+      <p className="bold center">Processos administrativos facilitados</p>
       <ul
         className="center dim"
         style={{ margin: 0, padding: 0, listStyle: "none" }}
       >
         <li>
-          <small>Escolha o tipo de etiqueta na lista ao lado</small>
+          <small>Escolha o processo na lista ao lado</small>
         </li>
         <li>
-          <small>Personalize os dados das etiquetas pela interface</small>
+          <small>Siga os passos indicados pela interface</small>
         </li>
         <li>
           <small>Configure a impressora de destino</small>
