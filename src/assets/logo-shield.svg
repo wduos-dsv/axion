@@ -2,19 +2,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="1000px" height="1000px" viewBox="0 0 1000 1000">
 <defs>
 <linearGradient id="Gradient_1" gradientUnits="userSpaceOnUse" x1="519.9875" y1="841.75" x2="572.6125" y2="841.75" spreadMethod="pad">
-<stop  offset="0%" stop-color="#794EE3"/>
+<stop  offset="0%" stop-color="#646cff"/>
 
-<stop  offset="100%" stop-color="#4E3CAA"/>
+<stop  offset="100%" stop-color="#6066dd"/>
 </linearGradient>
 
 <linearGradient id="Gradient_2" gradientUnits="userSpaceOnUse" x1="523.3" y1="742.9" x2="436.7" y2="873.4" spreadMethod="pad">
-<stop  offset="0%" stop-color="#794EE3"/>
+<stop  offset="0%" stop-color="#646cff"/>
 
-<stop  offset="100%" stop-color="#4E3CAA"/>
+<stop  offset="100%" stop-color="#6066dd"/>
 </linearGradient>
 
 <g id="Layer0_0_FILL">
-<path fill="#E4DAF3" stroke="none" d="
+<path fill="#646cff42" stroke="none" d="
 M 583.4 728.3
 Q 548.89453125 693.7982421875 500.05 693.8 451.1546875 693.798828125 416.6 728.3 382.0982421875 762.8552734375 382.1 811.7 382.098046875 860.5955078125 416.6 895.05 451.1544921875 929.6521484375 500.05 929.65 548.8947265625 929.6525390625 583.4 895.05 617.9517578125 860.5955078125 617.95 811.7 617.9515625 762.8552734375 583.4 728.3
 M 500.05 699.8
