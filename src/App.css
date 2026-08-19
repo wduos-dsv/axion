@@ -1,0 +1,117 @@
+.App {
+  position: relative;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 2.5rem;
+  padding: 0 var(--spacing-2);
+  -webkit-app-region: drag;
+}
+header img {
+  height: 1.5rem;
+}
+
+.control-btns {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  height: 2.5rem;
+  z-index: 10;
+}
+.control-btns button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  width: 1.5rem;
+  border: none;
+  border-radius: 50%;
+  -webkit-app-region: no-drag;
+  transition: 0.2s scale ease-out;
+}
+.control-btns button {
+  background-color: var(--gray);
+}
+.control-btns button svg {
+  fill: white;
+}
+.minimize-btn:hover,
+.maximize-btn:hover {
+  background-color: var(--accent-secondary);
+  box-shadow: 0 0 0 2px var(--accent-opaque);
+  scale: 110%;
+}
+.close-btn:hover {
+  background-color: var(--red);
+  box-shadow: 0 0 0 2px var(--red-opaque);
+  scale: 110%;
+}
+
+nav {
+  position: absolute;
+  top: 2.5rem;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  width: 12rem;
+  height: calc(100% - 5.5rem);
+  padding: var(--spacing-1);
+}
+nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  user-select: none;
+}
+nav a.active::after {
+  content: "•";
+}
+nav a svg {
+  height: var(--text-sm);
+  fill: var(--text);
+  transition: fill 0.2s ease-out;
+}
+nav a:hover svg {
+  fill: var(--accent-secondary);
+}
+
+#printer-configs {
+  position: absolute;
+  bottom: var(--spacing-1);
+  left: var(--spacing-1);
+  width: calc(100% - var(--spacing-1) - var(--spacing-1));
+}
+#printer-configs input {
+  background-color: var(--main-window);
+  box-shadow: inset var(--shadow);
+}
+#printer-configs select option {
+  border-radius: var(--radius-2);
+  font-size: var(--text-xs);
+  color: var(--text);
+}
+
+main {
+  margin: 0 13.5rem 0 0;
+  height: calc(100vh - 2.5rem);
+  padding: var(--spacing-1);
+  border-top-right-radius: var(--radius-1);
+  background-color: var(--main-window);
+  box-shadow: inset var(--shadow);
+}
+@media (prefers-color-scheme: light) {
+  .control-btns button {
+    background-color: var(--main-window);
+  }
+  .control-btns button svg {
+    fill: var(--text);
+  }
+  .control-btns button:hover svg {
+    fill: white;
+  }
+}
