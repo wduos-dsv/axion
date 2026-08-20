@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -22,7 +22,7 @@ let win: BrowserWindow | null;
 
 function createWindow() {
   win = new BrowserWindow({
-    // frame: false,
+    frame: false,
     icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
     height: 500,
     minHeight: 500,
@@ -38,7 +38,7 @@ function createWindow() {
     win?.webContents.send("main-process-message", new Date().toLocaleString());
   }); */
 
-  // win.removeMenu();
+  win.removeMenu();
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
@@ -56,7 +56,6 @@ function sendZplOverTcp(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const client = new net.Socket();
-
     if (timeoutMs > 0) {
       client.setTimeout(timeoutMs);
     }
@@ -107,6 +106,27 @@ ipcMain.handle("request-box-types-db", async () => {
   } catch (error: unknown) {
     console.log("Failed to load box-types.json database:", error);
     return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle("save-excel-file", async (_, excelBuffer) => {
+  try {
+    const { filePath } = await dialog.showSaveDialog({
+      title: "Salvar Planilha",
+      defaultPath: "Test.xlsx",
+      filters: [{ name: "Excel Files", extensions: ["xlsx"] }],
+    });
+
+    if (!filePath) {
+      return { success: false, error: "Operação cancelada pelo usuário." };
+    }
+
+    const buffer = Buffer.from(excelBuffer);
+    fs.writeFileSync(filePath, buffer);
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: String(error) };
   }
 });
 
