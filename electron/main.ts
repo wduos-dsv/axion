@@ -26,7 +26,7 @@ let win: BrowserWindow | null;
 
 function createWindow() {
   win = new BrowserWindow({
-    // frame: false,
+    frame: false,
     icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
     height: 500,
     minHeight: 500,
@@ -42,7 +42,7 @@ function createWindow() {
     win?.webContents.send("main-process-message", new Date().toLocaleString());
   }); */
 
-  // win.removeMenu();
+  win.removeMenu();
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);

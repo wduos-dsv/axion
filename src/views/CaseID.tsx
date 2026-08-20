@@ -25,12 +25,23 @@ export default function CaseID() {
 
     reader.onload = (loadEvent) => {
       const data = loadEvent.target?.result;
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const parsedData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      if (!data) return;
 
-      setPickDetailFile(parsedData);
+      try {
+        const uint8Array = new Uint8Array(data as ArrayBuffer);
+        const workbook = XLSX.read(uint8Array, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const parsedData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        setPickDetailFile(parsedData);
+      } catch (error) {
+        console.error("Error parsing Excel file:", error);
+        setDisplayStatus("error");
+        setDisplayStatusMessage(
+          "Erro ao ler o arquivo Excel. Verifique se o arquivo está corrompido.",
+        );
+      }
     };
 
     reader.readAsArrayBuffer(file);
