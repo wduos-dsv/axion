@@ -190,7 +190,7 @@ input[type="checkbox"]:checked::before {
   color: white;
 }
 
-.print-labels-btn {
+.main-process-btn {
   margin-top: var(--spacing-1);
   width: 100%;
   background-image: linear-gradient(
@@ -203,7 +203,7 @@ input[type="checkbox"]:checked::before {
   box-shadow: 0 0 10px transparent;
   transition: background-image 0.2s ease-out;
 }
-.print-labels-btn:hover {
+.main-process-btn:hover {
   background-image: linear-gradient(
     to right,
     var(--accent),
@@ -212,7 +212,7 @@ input[type="checkbox"]:checked::before {
   );
   box-shadow: 0 0 15px var(--accent-opaque);
 }
-.print-labels-btn.disabled {
+.main-process-btn.disabled {
   background-image: linear-gradient(
     to right,
     var(--accent-dull),

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 
 interface printerInfo {
   printerPort: number;
@@ -6,26 +7,21 @@ interface printerInfo {
 }
 
 export default function CaseID({ printerPort, printerIP }: printerInfo) {
-  const [printMode, setPrintMode] = useState<"full" | "specific">("full");
+  const [boxTypes, setBoxTypes] = useState([]);
+
+  const [orderNumber, setOrderNumber] = useState("");
+  const [priority, setPriority] = useState(1);
   const [selectedMunicipality, setSelectedMunicipality] = useState<
     "Itajaí" | "Cachoeirinha" | "Passo Fundo"
   >("Itajaí");
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split("T")[0];
-  });
-  const [orderNumber, setOrderNumber] = useState("");
-  const [palletQuantity, setPalletQuantity] = useState(1);
-  const [specificLabelToPrint, setSpecificLabelToPrint] = useState(1);
-  const [printRepackLabel, setPrintRepackLabel] = useState(false);
+  const [pickDetailFile, setPickDetailFile] = useState<any[]>([]);
 
-  const [printStatus, setPrintStatus] = useState<
+  const [displayStatus, setDisplayStatus] = useState<
     "none" | "success" | "error" | "awaiting"
   >("none");
-  const [printStatusMessage, setPrintStatusMessage] = useState("");
+  const [displayStatusMessage, setDisplayStatusMessage] = useState("");
 
-  const handlePrint = async () => {
+  /* const handlePrint = async () => {
     setPrintStatus("awaiting");
 
     const trimmedOrder = orderNumber.trim();
@@ -94,28 +90,66 @@ export default function CaseID({ printerPort, printerIP }: printerInfo) {
       setPrintStatusMessage(`Erro de impressão: ${error}`);
       console.error("Erro na comunicação de impressão:", error);
     }
+  }; */
+
+  useEffect(() => {
+    const loadBoxTypesDb = async () => {
+      try {
+        const db = await (window as any).ipcRenderer.invoke(
+          "request-box-types-db",
+        );
+        setBoxTypes(db.data);
+      } catch (error) {
+        console.error("Erro ao carregar banco de dados", error);
+      }
+    };
+
+    void loadBoxTypesDb();
+  }, []);
+
+  const handleReadPickDetailFile = (file: any) => {
+    if (!file) {
+      setPickDetailFile([]);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      const data = loadEvent.target?.result;
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const parsedData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      setPickDetailFile(parsedData);
+    };
+
+    reader.readAsArrayBuffer(file);
   };
 
   return (
     <div>
-      <h2 className="view-title">Etiquetas EXP</h2>
-      <small className="view-subtitle">modo</small>
-      <div className="flex-btns">
-        <button
-          type="button"
-          onClick={() => setPrintMode("full")}
-          className={printMode === "full" ? "active" : ""}
-        >
-          Sequência Completa
-        </button>
-        <button
-          type="button"
-          onClick={() => setPrintMode("specific")}
-          className={printMode === "specific" ? "active" : ""}
-        >
-          Etiqueta Específica
-        </button>
-      </div>
+      <h2 className="view-title">Planilha de Picking por Case ID</h2>
+      <small className="view-subtitle">Número da Ordem</small>
+      <input
+        type="number"
+        placeholder="6878496221"
+        value={orderNumber}
+        min={6878000000}
+        max={9999999999}
+        onChange={(event) => {
+          const digits = event.target.value.replace(/\D/g, "").slice(0, 10);
+          setOrderNumber(digits);
+        }}
+      />
+      <small className="view-subtitle">Número da LS</small>
+      <input
+        type="number"
+        value={priority}
+        min={1}
+        max={5}
+        onChange={(event) => setPriority(parseInt(event.target.value) || 1)}
+      />
       <small className="view-subtitle">Município</small>
       <div className="flex-btns">
         <button
@@ -140,91 +174,33 @@ export default function CaseID({ printerPort, printerIP }: printerInfo) {
           Passo Fundo
         </button>
       </div>
-      <small className="view-subtitle">Data de Expedição</small>
+      <small className="view-subtitle">Arquivo do Pick Detail</small>
       <input
-        type="date"
-        value={selectedDate}
-        onChange={(event) => {
-          setSelectedDate(event.target.value);
-          console.log(event.target.value.replace(/-/g, "/"));
-        }}
+        type="file"
+        accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        onChange={(event) => handleReadPickDetailFile(event.target.files?.[0])}
       />
-      <small className="view-subtitle">Número da Ordem</small>
-      <input
-        type="number"
-        placeholder="6878496221"
-        value={orderNumber}
-        min={6878000000}
-        max={9999999999}
-        onChange={(event) => {
-          const digits = event.target.value.replace(/\D/g, "").slice(0, 10);
-          setOrderNumber(digits);
-        }}
-      />
-      <small className="view-subtitle">Quantidade de Pallets</small>
-      <input
-        type="number"
-        value={palletQuantity}
-        max={30}
-        onChange={(event) =>
-          setPalletQuantity(parseInt(event.target.value) || 1)
-        }
-      />
-      {printMode === "specific" && (
-        <>
-          <small className="view-subtitle">Etiqueta a ser impressa</small>
-          <input
-            type="number"
-            value={specificLabelToPrint}
-            max={palletQuantity}
-            onChange={(event) =>
-              setSpecificLabelToPrint(parseInt(event.target.value) || 1)
-            }
-          />
-        </>
-      )}
-      {printMode === "full" && (
-        <>
-          <small className="view-subtitle">Imprimir etiqueta de Repack</small>
-          <div className="flex-btns">
-            <button
-              type="button"
-              onClick={() => setPrintRepackLabel(true)}
-              className={printRepackLabel ? "active" : ""}
-            >
-              Sim
-            </button>
-            <button
-              type="button"
-              onClick={() => setPrintRepackLabel(false)}
-              className={printRepackLabel ? "" : "active"}
-            >
-              Não
-            </button>
-          </div>
-        </>
-      )}
 
       <button
         className={
-          printStatus === "awaiting"
-            ? "print-labels-btn disabled"
-            : "print-labels-btn"
+          displayStatus === "awaiting"
+            ? "main-process-btn disabled"
+            : "main-process-btn"
         }
-        onClick={handlePrint}
-        disabled={printStatus === "awaiting"}
+        onClick={() => console.log(pickDetailFile)}
+        disabled={displayStatus === "awaiting"}
       >
-        Iniciar Impressão
+        Iniciar Processo
       </button>
-      {printStatus === "success" ? (
+      {displayStatus === "success" ? (
         <small className="mrg-top-3 text-xs center green">
-          {printStatusMessage}
+          {displayStatusMessage}
         </small>
-      ) : printStatus === "error" ? (
+      ) : displayStatus === "error" ? (
         <small className="mrg-top-3 text-xs center err">
-          {printStatusMessage}
+          {displayStatusMessage}
         </small>
-      ) : printStatus === "awaiting" ? (
+      ) : displayStatus === "awaiting" ? (
         <small className="mrg-top-3 text-xs center dim hold">Aguarde...</small>
       ) : null}
     </div>

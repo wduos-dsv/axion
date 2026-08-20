@@ -15,7 +15,8 @@
     "@esbuild/win32-x64": "0.28.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.18.2"
+    "react-router-dom": "^7.18.2",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",
@@ -37,6 +38,12 @@
   "main": "dist-electron/main.js",
   "build": {
     "appId": "com.wduos.axion",
+    "extraResources": [
+      {
+        "from": "resources/box-types.json",
+        "to": "box-types.json"
+      }
+    ],
     "productName": "Axion",
     "directories": {
       "output": "release"
