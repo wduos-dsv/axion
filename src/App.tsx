@@ -34,7 +34,7 @@ export default function App() {
         </svg>
       ),
       title: "Picking por Case ID",
-      element: <CaseID printerPort={printerPort} printerIP={printerIP} />,
+      element: <CaseID />,
     },
   ];
 
