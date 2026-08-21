@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HashRouter, Routes, Route, Link } from "react-router-dom";
 import Home from "./views/Home";
 import CaseID from "./views/CaseID";
@@ -10,6 +10,17 @@ export default function App() {
   const [printerPort, setPrinterPort] = useState<number>(9100);
   const [printerIP, setPrinterIP] = useState<string>("10.55.22.240");
   const [currentView, setCurrentView] = useState<string>("/");
+  const [printerList, setPrinterList] = useState<any[]>([]);
+  const [selectedPrinter, setSelectedPrinter] = useState<string>("");
+
+  useEffect(() => {
+    const getPrinters = async () => {
+      const result = await (window as any).ipcRenderer.invoke("get-printers");
+      setPrinterList(result);
+    };
+
+    getPrinters();
+  }, []);
 
   const ipRegex =
     /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
@@ -34,7 +45,7 @@ export default function App() {
         </svg>
       ),
       title: "Picking por Case ID",
-      element: <CaseID />,
+      element: <CaseID printer={selectedPrinter} />,
     },
   ];
 
@@ -93,6 +104,34 @@ export default function App() {
           ))}
 
           <div id="printer-configs">
+            <small className="view-subtitle">Seleção de Impressora</small>
+            {printerList.length > 0 ? (
+              <select
+                value={selectedPrinter}
+                onChange={(event) => setSelectedPrinter(event.target.value)}
+              >
+                <option value="" disabled>
+                  Selecione uma impressora
+                </option>
+                {printerList.map((printer, index) => {
+                  const printerName =
+                    typeof printer === "string"
+                      ? printer
+                      : printer?.name ||
+                        printer?.displayName ||
+                        `Impressora ${index + 1}`;
+
+                  return (
+                    <option key={printerName} value={printerName}>
+                      {printerName}
+                    </option>
+                  );
+                })}
+              </select>
+            ) : (
+              <small className="green">Carregando impressoras...</small>
+            )}
+
             <small className="view-subtitle">
               Configuração da Impressora Zebra
             </small>

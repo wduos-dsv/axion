@@ -86,14 +86,13 @@ nav a:hover svg {
   left: var(--spacing-1);
   width: calc(100% - var(--spacing-1) - var(--spacing-1));
 }
-#printer-configs input {
+#printer-configs input,
+#printer-configs select {
   background-color: var(--main-window);
   box-shadow: inset var(--shadow);
 }
-#printer-configs select option {
-  border-radius: var(--radius-2);
-  font-size: var(--text-xs);
-  color: var(--text);
+#printer-configs select {
+  width: 100%;
 }
 
 main {

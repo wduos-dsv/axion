@@ -1,7 +1,11 @@
 import { useState } from "react";
 import * as XLSX from "xlsx";
 
-export default function CaseID() {
+interface printerInfo {
+  printer: string;
+}
+
+export default function CaseID({ printer }: printerInfo) {
   const [priority, setPriority] = useState(1);
   const [selectedMunicipality, setSelectedMunicipality] = useState<
     "Itajaí" | "Cachoeirinha" | "Passo Fundo"
@@ -48,6 +52,12 @@ export default function CaseID() {
   };
 
   const generateCaseID = async () => {
+    if (!printer) {
+      setDisplayStatus("error");
+      setDisplayStatusMessage("Selecione uma impressora de destino");
+      return;
+    }
+
     // read order number directly from the parsed file so it's immediately available
     const orderNumber = pickDetailFile[0]?.["Order Number"] || "";
 
@@ -74,6 +84,7 @@ export default function CaseID() {
       priority,
       selectedMunicipality,
       orderData,
+      printer,
     );
 
     if (result.success) {

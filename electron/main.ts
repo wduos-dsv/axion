@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -102,41 +102,14 @@ function getBoxTypesDatabasePath() {
   }
 }
 
-ipcMain.handle("request-box-types-db", async () => {
-  const dbPath = getBoxTypesDatabasePath();
-  try {
-    const fileData = fs.readFileSync(dbPath, "utf-8");
-    return { success: true, data: JSON.parse(fileData) };
-  } catch (error: unknown) {
-    console.log("Failed to load box-types.json database:", error);
-    return { success: false, error: (error as Error).message };
-  }
-});
-
-ipcMain.handle("save-excel-file", async (_, excelBuffer) => {
-  try {
-    const { filePath } = await dialog.showSaveDialog({
-      title: "Salvar Planilha",
-      defaultPath: "Test.xlsx",
-      filters: [{ name: "Excel Files", extensions: ["xlsx"] }],
-    });
-
-    if (!filePath) {
-      return { success: false, error: "Operação cancelada pelo usuário." };
-    }
-
-    const buffer = Buffer.from(excelBuffer);
-    fs.writeFileSync(filePath, buffer);
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: String(error) };
-  }
+ipcMain.handle("get-printers", async () => {
+  if (!win) return [];
+  return await win.webContents.getPrintersAsync();
 });
 
 ipcMain.handle(
   "generate-case-id",
-  async (_, orderNumber, priority, municipality, orderData) => {
+  async (_, orderNumber, priority, municipality, orderData, printerName) => {
     const dbPath = getBoxTypesDatabasePath();
     let db: Array<{ SKU: string; Type: string }> = [];
 

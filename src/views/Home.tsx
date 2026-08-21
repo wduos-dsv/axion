@@ -30,7 +30,7 @@ export default function Home() {
           <small>Siga os passos indicados pela interface</small>
         </li>
         <li>
-          <small>Configure a impressora de destino, se necessário</small>
+          <small>Configure a impressora de destino</small>
         </li>
         <li>
           <small>Imprima!</small>

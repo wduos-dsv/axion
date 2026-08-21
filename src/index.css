@@ -73,13 +73,16 @@ select {
   transition: border-color 0.2s ease-out;
 }
 button:not(.control-btns button):hover,
-input:hover {
+input:hover,
+select:hover {
   border-color: var(--accent-tertiary);
 }
 button:not(.control-btns button):focus,
 button:not(.control-btns button):focus-visible,
 input:focus,
-input:focus-visible {
+input:focus-visible,
+select:focus,
+select:focus-visible {
   outline: 2px auto -webkit-focus-ring-color;
 }
 
@@ -231,13 +234,16 @@ input[type="checkbox"]:checked::before {
   }
 
   button:not(.control-btns button):hover,
-  input:hover {
+  input:hover,
+  select:hover {
     border-color: var(--accent-opaque);
   }
   button:not(.control-btns button):focus,
   button:not(.control-btns button):focus-visible,
   input:focus,
-  input:focus-visible {
+  input:focus-visible,
+  select:focus,
+  select:focus-visible {
     outline: 2px auto var(--accent-tertiary);
   }
 

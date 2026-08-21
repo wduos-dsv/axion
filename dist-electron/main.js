@@ -1,4 +1,4 @@
-import { ipcMain, dialog, app, BrowserWindow } from "electron";
+import { ipcMain, app, BrowserWindow } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path$d from "node:path";
@@ -43,7 +43,7 @@ function getAugmentedNamespace(n) {
   });
   return a;
 }
-const { toString: toString$4 } = Object.prototype;
+const { toString: toString$3 } = Object.prototype;
 const escapeHtmlRegex = /["&<>]/;
 const _$m = {
   each: function each(obj, cb) {
@@ -170,10 +170,10 @@ const _$m = {
     return 0;
   },
   isUndefined(val) {
-    return toString$4.call(val) === "[object Undefined]";
+    return toString$3.call(val) === "[object Undefined]";
   },
   isObject(val) {
-    return toString$4.call(val) === "[object Object]";
+    return toString$3.call(val) === "[object Object]";
   },
   deepMerge() {
     const target = arguments[0] || {};
@@ -3989,9 +3989,9 @@ var hasRequiredIsarray;
 function requireIsarray() {
   if (hasRequiredIsarray) return isarray;
   hasRequiredIsarray = 1;
-  var toString2 = {}.toString;
+  var toString3 = {}.toString;
   isarray = Array.isArray || function(arr) {
-    return toString2.call(arr) == "[object Array]";
+    return toString3.call(arr) == "[object Array]";
   };
   return isarray;
 }
@@ -4063,10 +4063,10 @@ function requireSafeBuffer$5() {
   })(safeBuffer$5, safeBuffer$5.exports);
   return safeBuffer$5.exports;
 }
-var util$i = {};
+var util$h = {};
 var hasRequiredUtil$1;
 function requireUtil$1() {
-  if (hasRequiredUtil$1) return util$i;
+  if (hasRequiredUtil$1) return util$h;
   hasRequiredUtil$1 = 1;
   function isArray2(arg) {
     if (Array.isArray) {
@@ -4074,65 +4074,65 @@ function requireUtil$1() {
     }
     return objectToString2(arg) === "[object Array]";
   }
-  util$i.isArray = isArray2;
+  util$h.isArray = isArray2;
   function isBoolean2(arg) {
     return typeof arg === "boolean";
   }
-  util$i.isBoolean = isBoolean2;
+  util$h.isBoolean = isBoolean2;
   function isNull(arg) {
     return arg === null;
   }
-  util$i.isNull = isNull;
+  util$h.isNull = isNull;
   function isNullOrUndefined(arg) {
     return arg == null;
   }
-  util$i.isNullOrUndefined = isNullOrUndefined;
+  util$h.isNullOrUndefined = isNullOrUndefined;
   function isNumber(arg) {
     return typeof arg === "number";
   }
-  util$i.isNumber = isNumber;
+  util$h.isNumber = isNumber;
   function isString(arg) {
     return typeof arg === "string";
   }
-  util$i.isString = isString;
+  util$h.isString = isString;
   function isSymbol2(arg) {
     return typeof arg === "symbol";
   }
-  util$i.isSymbol = isSymbol2;
+  util$h.isSymbol = isSymbol2;
   function isUndefined2(arg) {
     return arg === void 0;
   }
-  util$i.isUndefined = isUndefined2;
+  util$h.isUndefined = isUndefined2;
   function isRegExp2(re) {
     return objectToString2(re) === "[object RegExp]";
   }
-  util$i.isRegExp = isRegExp2;
+  util$h.isRegExp = isRegExp2;
   function isObject2(arg) {
     return typeof arg === "object" && arg !== null;
   }
-  util$i.isObject = isObject2;
+  util$h.isObject = isObject2;
   function isDate(d) {
     return objectToString2(d) === "[object Date]";
   }
-  util$i.isDate = isDate;
+  util$h.isDate = isDate;
   function isError(e) {
     return objectToString2(e) === "[object Error]" || e instanceof Error;
   }
-  util$i.isError = isError;
+  util$h.isError = isError;
   function isFunction2(arg) {
     return typeof arg === "function";
   }
-  util$i.isFunction = isFunction2;
+  util$h.isFunction = isFunction2;
   function isPrimitive(arg) {
     return arg === null || typeof arg === "boolean" || typeof arg === "number" || typeof arg === "string" || typeof arg === "symbol" || // ES6 symbol
     typeof arg === "undefined";
   }
-  util$i.isPrimitive = isPrimitive;
-  util$i.isBuffer = Buffer.isBuffer;
+  util$h.isPrimitive = isPrimitive;
+  util$h.isBuffer = Buffer.isBuffer;
   function objectToString2(o) {
     return Object.prototype.toString.call(o);
   }
-  return util$i;
+  return util$h;
 }
 var inherits$a = { exports: {} };
 var inherits_browser = { exports: {} };
@@ -9785,7 +9785,7 @@ var utils$x = common$1;
 var strings$1 = strings$2;
 var msg$1 = messages;
 var ZStream$1 = zstream;
-var toString$3 = Object.prototype.toString;
+var toString$2 = Object.prototype.toString;
 var Z_NO_FLUSH = 0;
 var Z_FINISH$1 = 4;
 var Z_OK$1 = 0;
@@ -9835,7 +9835,7 @@ function Deflate(options) {
     var dict;
     if (typeof opt.dictionary === "string") {
       dict = strings$1.string2buf(opt.dictionary);
-    } else if (toString$3.call(opt.dictionary) === "[object ArrayBuffer]") {
+    } else if (toString$2.call(opt.dictionary) === "[object ArrayBuffer]") {
       dict = new Uint8Array(opt.dictionary);
     } else {
       dict = opt.dictionary;
@@ -9857,7 +9857,7 @@ Deflate.prototype.push = function(data, mode) {
   _mode = mode === ~~mode ? mode : mode === true ? Z_FINISH$1 : Z_NO_FLUSH;
   if (typeof data === "string") {
     strm.input = strings$1.string2buf(data);
-  } else if (toString$3.call(data) === "[object ArrayBuffer]") {
+  } else if (toString$2.call(data) === "[object ArrayBuffer]") {
     strm.input = new Uint8Array(data);
   } else {
     strm.input = data;
@@ -11732,7 +11732,7 @@ var c = constants$6;
 var msg = messages;
 var ZStream = zstream;
 var GZheader = gzheader;
-var toString$2 = Object.prototype.toString;
+var toString$1 = Object.prototype.toString;
 function Inflate(options) {
   if (!(this instanceof Inflate)) return new Inflate(options);
   this.options = utils$u.assign({
@@ -11773,7 +11773,7 @@ function Inflate(options) {
   if (opt.dictionary) {
     if (typeof opt.dictionary === "string") {
       opt.dictionary = strings.string2buf(opt.dictionary);
-    } else if (toString$2.call(opt.dictionary) === "[object ArrayBuffer]") {
+    } else if (toString$1.call(opt.dictionary) === "[object ArrayBuffer]") {
       opt.dictionary = new Uint8Array(opt.dictionary);
     }
     if (opt.raw) {
@@ -11797,7 +11797,7 @@ Inflate.prototype.push = function(data, mode) {
   _mode = mode === ~~mode ? mode : mode === true ? c.Z_FINISH : c.Z_NO_FLUSH;
   if (typeof data === "string") {
     strm.input = strings.binstring2buf(data);
-  } else if (toString$2.call(data) === "[object ArrayBuffer]") {
+  } else if (toString$1.call(data) === "[object ArrayBuffer]") {
     strm.input = new Uint8Array(data);
   } else {
     strm.input = data;
@@ -28659,11 +28659,11 @@ function isObjectLike$5(value) {
 function isSymbol(value) {
   return typeof value == "symbol" || isObjectLike$5(value) && objectToString$6.call(value) == symbolTag;
 }
-function toString$1(value) {
+function toString(value) {
   return value == null ? "" : baseToString(value);
 }
 function escapeRegExp(string) {
-  string = toString$1(string);
+  string = toString(string);
   return string && reHasRegExpChar.test(string) ? string.replace(reRegExpChar$3, "\\$&") : string;
 }
 var lodash_escaperegexp = escapeRegExp;
@@ -30193,7 +30193,7 @@ lodash_groupby.exports;
     };
   }
   var stringToPath = memoize2(function(string) {
-    string = toString2(string);
+    string = toString3(string);
     var result = [];
     if (reLeadingDot.test(string)) {
       result.push("");
@@ -30278,7 +30278,7 @@ lodash_groupby.exports;
     return typeof value == "symbol" || isObjectLike2(value) && objectToString2.call(value) == symbolTag2;
   }
   var isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedArray;
-  function toString2(value) {
+  function toString3(value) {
     return value == null ? "" : baseToString2(value);
   }
   function get3(object2, path2, defaultValue) {
@@ -45293,7 +45293,7 @@ BufferList$3.prototype.shallowSlice = function shallowSlice(start, end2) {
   }
   return this._new(buffers2);
 };
-BufferList$3.prototype.toString = function toString(encoding, start, end2) {
+BufferList$3.prototype.toString = function toString2(encoding, start, end2) {
   return this.slice(start, end2).toString(encoding);
 };
 BufferList$3.prototype.consume = function consume(bytes) {
@@ -62125,7 +62125,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path$d.join(process.env.APP_ROOT
 let win;
 function createWindow() {
   win = new BrowserWindow({
-    // frame: false,
+    frame: false,
     icon: path$d.join(process.env.VITE_PUBLIC, "icon.png"),
     height: 500,
     minHeight: 500,
@@ -62135,6 +62135,7 @@ function createWindow() {
       preload: path$d.join(__dirname$1, "preload.mjs")
     }
   });
+  win.removeMenu();
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -62148,36 +62149,13 @@ function getBoxTypesDatabasePath() {
     return path$d.join(__dirname$1, "../resources/box-types.json");
   }
 }
-ipcMain.handle("request-box-types-db", async () => {
-  const dbPath = getBoxTypesDatabasePath();
-  try {
-    const fileData = require$$0$4.readFileSync(dbPath, "utf-8");
-    return { success: true, data: JSON.parse(fileData) };
-  } catch (error2) {
-    console.log("Failed to load box-types.json database:", error2);
-    return { success: false, error: error2.message };
-  }
-});
-ipcMain.handle("save-excel-file", async (_2, excelBuffer) => {
-  try {
-    const { filePath } = await dialog.showSaveDialog({
-      title: "Salvar Planilha",
-      defaultPath: "Test.xlsx",
-      filters: [{ name: "Excel Files", extensions: ["xlsx"] }]
-    });
-    if (!filePath) {
-      return { success: false, error: "Operação cancelada pelo usuário." };
-    }
-    const buffer = Buffer.from(excelBuffer);
-    require$$0$4.writeFileSync(filePath, buffer);
-    return { success: true };
-  } catch (error2) {
-    return { success: false, error: String(error2) };
-  }
+ipcMain.handle("get-printers", async () => {
+  if (!win) return [];
+  return await win.webContents.getPrintersAsync();
 });
 ipcMain.handle(
   "generate-case-id",
-  async (_2, orderNumber, priority, municipality, orderData) => {
+  async (_2, orderNumber, priority, municipality, orderData, printerName) => {
     const dbPath = getBoxTypesDatabasePath();
     let db = [];
     const getBoxTypeFromDb = (sku) => {
