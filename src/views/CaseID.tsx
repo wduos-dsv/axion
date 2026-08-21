@@ -52,14 +52,9 @@ export default function CaseID({ printer }: printerInfo) {
   };
 
   const generateCaseID = async () => {
-    if (!printer) {
-      setDisplayStatus("error");
-      setDisplayStatusMessage("Selecione uma impressora de destino");
-      return;
-    }
-
     // read order number directly from the parsed file so it's immediately available
     const orderNumber = pickDetailFile[0]?.["Order Number"] || "";
+    let fullAmount = 0;
 
     const orderData: Array<{
       item: string | number | undefined;
@@ -69,12 +64,19 @@ export default function CaseID({ printer }: printerInfo) {
     }> = [];
 
     pickDetailFile.forEach((spreadsheetRow) => {
-      orderData.push({
-        item: parseInt(spreadsheetRow?.Item) || "",
-        location: spreadsheetRow?.Location || "",
-        quantity: parseInt(spreadsheetRow?.Quantity) || "",
-        caseId: spreadsheetRow?.["Case ID"] || "",
-      });
+      const quantityInRow = parseInt(spreadsheetRow?.Quantity);
+      const isPalletFull = quantityInRow === 400 || quantityInRow === 360;
+
+      if (isPalletFull) {
+        fullAmount++;
+      } else {
+        orderData.push({
+          item: parseInt(spreadsheetRow?.Item) || "",
+          location: spreadsheetRow?.Location || "",
+          quantity: parseInt(spreadsheetRow?.Quantity) || "",
+          caseId: spreadsheetRow?.["Case ID"] || "",
+        });
+      }
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,7 +91,9 @@ export default function CaseID({ printer }: printerInfo) {
 
     if (result.success) {
       setDisplayStatus("success");
-      setDisplayStatusMessage("Planilha gerada com sucesso!");
+      setDisplayStatusMessage(
+        `Planilha gerada com sucesso! Há ${fullAmount} pallets full neste pedido.`,
+      );
     } else {
       setDisplayStatus("error");
       setDisplayStatusMessage(`Erro ao salvar planilha: ${result.error}`);

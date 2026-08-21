@@ -62125,7 +62125,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path$d.join(process.env.APP_ROOT
 let win;
 function createWindow() {
   win = new BrowserWindow({
-    frame: false,
+    // frame: false,
     icon: path$d.join(process.env.VITE_PUBLIC, "icon.png"),
     height: 500,
     minHeight: 500,
@@ -62135,7 +62135,6 @@ function createWindow() {
       preload: path$d.join(__dirname$1, "preload.mjs")
     }
   });
-  win.removeMenu();
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
