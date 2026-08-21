@@ -52,7 +52,7 @@ function createWindow() {
 }
 
 // helpers
-function sendZplOverTcp(
+/* function sendZplOverTcp(
   ip: string,
   port: number,
   zplData: string,
@@ -92,7 +92,7 @@ function sendZplOverTcp(
       resolve();
     });
   });
-}
+} */
 
 function getBoxTypesDatabasePath() {
   if (app.isPackaged) {
@@ -109,7 +109,67 @@ ipcMain.handle("get-printers", async () => {
 
 ipcMain.handle(
   "generate-case-id",
-  async (_, orderNumber, priority, municipality, orderData, printerName) => {
+  async (_, priority, municipality, filePath, printerName) => {
+    const excelFileData: Array<any> = [];
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filePath);
+
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet) {
+        return { success: false, error: "Planilha vazia ou inválida." };
+      }
+
+      let headers: string[] = [];
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) {
+          headers = (row.values as Array<any>).map((val) =>
+            String(val || "").trim(),
+          );
+        } else {
+          const rowObject: Record<string, any> = {};
+          const values = row.values as Array<any>;
+          headers.forEach((header, index) => {
+            if (header) {
+              rowObject[header] =
+                values[index] !== undefined ? values[index] : "";
+            }
+          });
+          excelFileData.push(rowObject);
+        }
+      });
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+
+    const orderNumber = excelFileData[0]?.["Order Number"] || "";
+    let fullAmount = 0;
+
+    const orderData: Array<{
+      item: string | number | undefined;
+      location: string | number | undefined;
+      quantity: string | number | undefined;
+      caseId: string | number | undefined;
+    }> = [];
+
+    excelFileData.forEach((spreadsheetRow) => {
+      const quantityInRow = parseInt(spreadsheetRow?.Quantity);
+      const isPalletFull = quantityInRow === 400 || quantityInRow === 360;
+
+      if (isPalletFull) {
+        fullAmount++;
+      } else {
+        orderData.push({
+          item: parseInt(spreadsheetRow?.Item) || "",
+          location: spreadsheetRow?.Location || "",
+          quantity: parseInt(spreadsheetRow?.Quantity) || "",
+          caseId: spreadsheetRow?.["Case ID"] || "",
+        });
+      }
+    });
+
     const dbPath = getBoxTypesDatabasePath();
     let db: Array<{ SKU: string; Type: string }> = [];
 
@@ -257,7 +317,7 @@ ipcMain.handle(
 
     try {
       await workbook.xlsx.writeFile(path.join(__dirname, "..", "Test.xlsx"));
-      return { success: true };
+      return { success: true, fullAmount: fullAmount };
     } catch (error) {
       return { success: false, error: String(error) };
     }

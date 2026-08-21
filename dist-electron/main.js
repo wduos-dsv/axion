@@ -2,7 +2,6 @@ import { ipcMain, app, BrowserWindow } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path$d from "node:path";
-import "node:net";
 import require$$0$4 from "fs";
 import crypto$1 from "crypto";
 import require$$0$1 from "stream";
@@ -62154,7 +62153,54 @@ ipcMain.handle("get-printers", async () => {
 });
 ipcMain.handle(
   "generate-case-id",
-  async (_2, orderNumber, priority, municipality, orderData, printerName) => {
+  async (_2, priority, municipality, filePath, printerName) => {
+    var _a;
+    const excelFileData = [];
+    try {
+      const workbook22 = new ExcelJS.Workbook();
+      await workbook22.xlsx.readFile(filePath);
+      const worksheet22 = workbook22.worksheets[0];
+      if (!worksheet22) {
+        return { success: false, error: "Planilha vazia ou inválida." };
+      }
+      let headers2 = [];
+      worksheet22.eachRow((row2, rowNumber) => {
+        if (rowNumber === 1) {
+          headers2 = row2.values.map(
+            (val) => String(val || "").trim()
+          );
+        } else {
+          const rowObject = {};
+          const values = row2.values;
+          headers2.forEach((header, index2) => {
+            if (header) {
+              rowObject[header] = values[index2] !== void 0 ? values[index2] : "";
+            }
+          });
+          excelFileData.push(rowObject);
+        }
+      });
+    } catch (error2) {
+      return { success: false, error: String(error2) };
+    }
+    console.log(excelFileData);
+    const orderNumber = ((_a = excelFileData[0]) == null ? void 0 : _a["Order Number"]) || "";
+    let fullAmount = 0;
+    const orderData = [];
+    excelFileData.forEach((spreadsheetRow) => {
+      const quantityInRow = parseInt(spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity);
+      const isPalletFull = quantityInRow === 400 || quantityInRow === 360;
+      if (isPalletFull) {
+        fullAmount++;
+      } else {
+        orderData.push({
+          item: parseInt(spreadsheetRow == null ? void 0 : spreadsheetRow.Item) || "",
+          location: (spreadsheetRow == null ? void 0 : spreadsheetRow.Location) || "",
+          quantity: parseInt(spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity) || "",
+          caseId: (spreadsheetRow == null ? void 0 : spreadsheetRow["Case ID"]) || ""
+        });
+      }
+    });
     const dbPath = getBoxTypesDatabasePath();
     let db = [];
     const getBoxTypeFromDb = (sku) => {
@@ -62277,7 +62323,7 @@ ipcMain.handle(
     }
     try {
       await workbook2.xlsx.writeFile(path$d.join(__dirname$1, "..", "Test.xlsx"));
-      return { success: true };
+      return { success: true, fullAmount };
     } catch (error2) {
       return { success: false, error: String(error2) };
     }

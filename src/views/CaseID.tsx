@@ -1,5 +1,4 @@
 import { useState } from "react";
-import * as XLSX from "xlsx";
 
 interface printerInfo {
   printer: string;
@@ -11,7 +10,7 @@ export default function CaseID({ printer }: printerInfo) {
     "Itajaí" | "Cachoeirinha" | "Passo Fundo"
   >("Itajaí");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [pickDetailFile, setPickDetailFile] = useState<any[]>([]);
+  const [pickDetailFilePath, setPickDetailFilePath] = useState("");
 
   const [displayStatus, setDisplayStatus] = useState<
     "none" | "success" | "error" | "awaiting"
@@ -19,80 +18,40 @@ export default function CaseID({ printer }: printerInfo) {
   const [displayStatusMessage, setDisplayStatusMessage] = useState("");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleReadPickDetailFile = (file: any) => {
+  const handleReadPickDetailFile = async (file: any) => {
     if (!file) {
-      setPickDetailFile([]);
+      setPickDetailFilePath("");
       return;
     }
 
-    const reader = new FileReader();
-
-    reader.onload = (loadEvent) => {
-      const data = loadEvent.target?.result;
-      if (!data) return;
-
-      try {
-        const uint8Array = new Uint8Array(data as ArrayBuffer);
-        const workbook = XLSX.read(uint8Array, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const parsedData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-        setPickDetailFile(parsedData);
-      } catch (error) {
-        console.error("Error parsing Excel file:", error);
-        setDisplayStatus("error");
-        setDisplayStatusMessage(
-          "Erro ao ler o arquivo Excel. Verifique se o arquivo está corrompido.",
-        );
+    try {
+      const filePath = file.path;
+      if (!filePath) {
+        throw new Error("Caminho do arquivo não encontrado.");
       }
-    };
 
-    reader.readAsArrayBuffer(file);
+      setPickDetailFilePath(file.path);
+      return;
+    } catch (error) {
+      setDisplayStatus("error");
+      setDisplayStatusMessage(`${error}`);
+    }
   };
 
   const generateCaseID = async () => {
-    // read order number directly from the parsed file so it's immediately available
-    const orderNumber = pickDetailFile[0]?.["Order Number"] || "";
-    let fullAmount = 0;
-
-    const orderData: Array<{
-      item: string | number | undefined;
-      location: string | number | undefined;
-      quantity: string | number | undefined;
-      caseId: string | number | undefined;
-    }> = [];
-
-    pickDetailFile.forEach((spreadsheetRow) => {
-      const quantityInRow = parseInt(spreadsheetRow?.Quantity);
-      const isPalletFull = quantityInRow === 400 || quantityInRow === 360;
-
-      if (isPalletFull) {
-        fullAmount++;
-      } else {
-        orderData.push({
-          item: parseInt(spreadsheetRow?.Item) || "",
-          location: spreadsheetRow?.Location || "",
-          quantity: parseInt(spreadsheetRow?.Quantity) || "",
-          caseId: spreadsheetRow?.["Case ID"] || "",
-        });
-      }
-    });
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (window as any).ipcRenderer.invoke(
       "generate-case-id",
-      orderNumber,
       priority,
       selectedMunicipality,
-      orderData,
+      pickDetailFilePath,
       printer,
     );
 
     if (result.success) {
       setDisplayStatus("success");
       setDisplayStatusMessage(
-        `Planilha gerada com sucesso! Há ${fullAmount} pallets full neste pedido.`,
+        `Planilha gerada com sucesso! Há ${result.fullAmount} pallets full neste pedido.`,
       );
     } else {
       setDisplayStatus("error");
