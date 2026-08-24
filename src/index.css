@@ -125,6 +125,13 @@ input[type="checkbox"]::before {
 input[type="checkbox"]:checked::before {
   right: 0.2rem;
 }
+input[type="file"]::file-selector-button {
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.15rem;
+  background-color: var(--accent);
+  color: white;
+}
 
 .dim {
   opacity: 0.5;

@@ -7,8 +7,8 @@ import "./App.css";
 import icon from "./assets/logo.svg";
 
 export default function App() {
-  const [printerPort, setPrinterPort] = useState<number>(9100);
-  const [printerIP, setPrinterIP] = useState<string>("10.55.22.240");
+  // const [printerPort, setPrinterPort] = useState<number>(9100);
+  // const [printerIP, setPrinterIP] = useState<string>("10.55.22.240");
   const [currentView, setCurrentView] = useState<string>("/");
   const [printerList, setPrinterList] = useState<any[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState<string>("");
@@ -22,9 +22,9 @@ export default function App() {
     getPrinters();
   }, []);
 
-  const ipRegex =
+  /* const ipRegex =
     /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  const isIpValid = ipRegex.test(printerIP);
+  const isIpValid = ipRegex.test(printerIP); */
 
   const pages = [
     {
