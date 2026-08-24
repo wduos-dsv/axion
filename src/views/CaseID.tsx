@@ -39,23 +39,46 @@ export default function CaseID({ printer }: printerInfo) {
   };
 
   const generateCaseID = async () => {
+    setDisplayStatus("awaiting");
+    setDisplayStatusMessage("Processando...");
+
+    if (!printer) {
+      setDisplayStatus("error");
+      setDisplayStatusMessage(
+        "Por favor, selecione uma impressora de destino!",
+      );
+
+      return;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (window as any).ipcRenderer.invoke(
       "generate-case-id",
       priority,
       selectedMunicipality,
       pickDetailFilePath,
-      printer,
     );
 
     if (result.success) {
-      setDisplayStatus("success");
-      setDisplayStatusMessage(
-        `Planilha gerada com sucesso! Há ${result.fullAmount} pallets full neste pedido.`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const printResult = await (window as any).ipcRenderer.invoke(
+        "print-html-content",
+        result.html,
+        printer,
       );
+
+      if (printResult.success) {
+        setDisplayStatus("success");
+        setDisplayStatusMessage(
+          `Documento impresso com sucesso! Há ${result.fullAmount} pallets full neste pedido.`,
+        );
+      } else {
+        setDisplayStatus("error");
+        setDisplayStatusMessage(`Erro na impressão: ${printResult.error}`);
+      }
     } else {
       setDisplayStatus("error");
-      setDisplayStatusMessage(`Erro ao salvar planilha: ${result.error}`);
+      setDisplayStatusMessage(`Erro ao gerar dados: ${result.error}`);
     }
   };
 
@@ -114,7 +137,7 @@ export default function CaseID({ printer }: printerInfo) {
         onClick={() => generateCaseID()}
         disabled={displayStatus === "awaiting"}
       >
-        Iniciar Processo
+        Iniciar Impressão
       </button>
       {displayStatus === "success" ? (
         <small className="mrg-top-3 text-xs center green">

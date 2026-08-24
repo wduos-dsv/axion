@@ -1,4 +1,4 @@
-import { ipcMain, app, BrowserWindow } from "electron";
+import { ipcMain, BrowserWindow, app } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path$d from "node:path";
@@ -62124,16 +62124,19 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path$d.join(process.env.APP_ROOT
 let win;
 function createWindow() {
   win = new BrowserWindow({
-    // frame: false,
+    frame: false,
     icon: path$d.join(process.env.VITE_PUBLIC, "icon.png"),
     height: 500,
     minHeight: 500,
     width: 700,
     minWidth: 700,
     webPreferences: {
-      preload: path$d.join(__dirname$1, "preload.mjs")
+      preload: path$d.join(__dirname$1, "preload.mjs"),
+      nodeIntegration: false,
+      contextIsolation: true
     }
   });
+  win.removeMenu();
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -62153,18 +62156,18 @@ ipcMain.handle("get-printers", async () => {
 });
 ipcMain.handle(
   "generate-case-id",
-  async (_2, priority, municipality, filePath, printerName) => {
+  async (_2, priority, municipality, filePath) => {
     var _a;
     const excelFileData = [];
     try {
-      const workbook22 = new ExcelJS.Workbook();
-      await workbook22.xlsx.readFile(filePath);
-      const worksheet22 = workbook22.worksheets[0];
-      if (!worksheet22) {
+      const workbook2 = new ExcelJS.Workbook();
+      await workbook2.xlsx.readFile(filePath);
+      const worksheet2 = workbook2.worksheets[0];
+      if (!worksheet2) {
         return { success: false, error: "Planilha vazia ou inválida." };
       }
       let headers2 = [];
-      worksheet22.eachRow((row2, rowNumber) => {
+      worksheet2.eachRow((row2, rowNumber) => {
         if (rowNumber === 1) {
           headers2 = row2.values.map(
             (val) => String(val || "").trim()
@@ -62183,7 +62186,6 @@ ipcMain.handle(
     } catch (error2) {
       return { success: false, error: String(error2) };
     }
-    console.log(excelFileData);
     const orderNumber = ((_a = excelFileData[0]) == null ? void 0 : _a["Order Number"]) || "";
     let fullAmount = 0;
     const orderData = [];
@@ -62194,9 +62196,9 @@ ipcMain.handle(
         fullAmount++;
       } else {
         orderData.push({
-          item: parseInt(spreadsheetRow == null ? void 0 : spreadsheetRow.Item) || "",
+          item: (spreadsheetRow == null ? void 0 : spreadsheetRow.Item) || "",
           location: (spreadsheetRow == null ? void 0 : spreadsheetRow.Location) || "",
-          quantity: parseInt(spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity) || "",
+          quantity: (spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity) || "",
           caseId: (spreadsheetRow == null ? void 0 : spreadsheetRow["Case ID"]) || ""
         });
       }
@@ -62214,55 +62216,6 @@ ipcMain.handle(
       console.log("Failed to load box-types.json database:", error2);
       return { success: false, error: error2.message };
     }
-    const workbook2 = new ExcelJS.Workbook();
-    const worksheet2 = workbook2.addWorksheet();
-    const thinBorder = {
-      top: { style: "thin", color: { argb: "000000" } },
-      left: { style: "thin", color: { argb: "000000" } },
-      bottom: { style: "thin", color: { argb: "000000" } },
-      right: { style: "thin", color: { argb: "000000" } }
-    };
-    worksheet2.columns = [
-      { key: "bType", width: 7 },
-      { key: "sku", width: 12 },
-      { key: "pos", width: 12 },
-      { key: "qty", width: 10 },
-      { key: "caseId", width: 15 },
-      { key: "barcode", width: 26 }
-    ];
-    worksheet2.columns.forEach((column2) => {
-      column2.alignment = {
-        horizontal: "center",
-        vertical: "middle"
-      };
-    });
-    worksheet2.getCell("A1").value = `LS${priority}`;
-    worksheet2.getCell("A1").font = { bold: true };
-    worksheet2.getCell("A1").border = thinBorder;
-    worksheet2.getCell("B1").value = "Ordem";
-    worksheet2.getCell("B1").font = { bold: true };
-    worksheet2.getCell("B1").border = thinBorder;
-    worksheet2.getCell("C1").value = orderNumber;
-    worksheet2.getCell("C1").border = thinBorder;
-    worksheet2.getCell("D1").value = "Destino";
-    worksheet2.getCell("D1").font = { bold: true };
-    worksheet2.getCell("D1").border = thinBorder;
-    worksheet2.getCell("E1").value = municipality;
-    worksheet2.getCell("E1").border = thinBorder;
-    const tableHeaderRow = worksheet2.getRow(3);
-    tableHeaderRow.values = [
-      "Caixa",
-      "SKU",
-      "Posição",
-      "Qtd - MIL",
-      "Case ID",
-      "Código de Barras"
-    ];
-    tableHeaderRow.font = { bold: true };
-    tableHeaderRow.eachCell((cell2) => {
-      cell2.border = thinBorder;
-      cell2.alignment = { horizontal: "center", vertical: "middle" };
-    });
     const sortedData = [...orderData].sort((a, b) => {
       const typeA = getBoxTypeFromDb(a == null ? void 0 : a.item.toString());
       const typeB = getBoxTypeFromDb(b == null ? void 0 : b.item.toString());
@@ -62282,53 +62235,161 @@ ipcMain.handle(
       const locB = String((b == null ? void 0 : b.location) || "");
       return locA.localeCompare(locB, void 0, { numeric: true });
     });
+    const processedRowsHtml = [];
     for (let i = 0; i < sortedData.length; i++) {
       const item = sortedData[i];
-      const rowIndex = i + 4;
-      const row2 = worksheet2.addRow({
-        bType: getBoxTypeFromDb(item == null ? void 0 : item.item.toString()),
-        sku: (item == null ? void 0 : item.item) || "",
-        pos: (item == null ? void 0 : item.location) || "",
-        qty: parseInt(item == null ? void 0 : item.quantity) || "",
-        caseId: (item == null ? void 0 : item.caseId) || "",
-        barcode: ""
-      });
-      row2.height = 40;
-      row2.eachCell((cell2) => {
-        cell2.alignment = {
-          horizontal: "center",
-          vertical: "middle"
-        };
-        cell2.border = thinBorder;
-      });
-      const barcodePngBuffer = await bwipjs.toBuffer({
-        bcid: "code128",
-        text: (item == null ? void 0 : item.caseId) || "",
-        scale: 3,
-        height: 8,
-        includeText: true,
-        textalign: "center"
-      });
-      const imageId = workbook2.addImage({
-        buffer: barcodePngBuffer,
-        extension: "png"
-      });
-      worksheet2.addImage(imageId, {
-        tl: {
-          col: 5.3,
-          row: rowIndex - 1 + 0.22
-        },
-        ext: { width: 175, height: 35 }
-      });
+      const boxType = getBoxTypeFromDb(item == null ? void 0 : item.item.toString());
+      const sku = (item == null ? void 0 : item.item) || "";
+      const pos = (item == null ? void 0 : item.location) || "";
+      const qty = (item == null ? void 0 : item.quantity) || "";
+      const caseId = (item == null ? void 0 : item.caseId) || "";
+      let barcodeDataUrl = "";
+      try {
+        const barcodePngBuffer = await bwipjs.toBuffer({
+          bcid: "code128",
+          text: caseId,
+          scale: 3,
+          height: 10,
+          includeText: true,
+          textalign: "center"
+        });
+        barcodeDataUrl = `data:image/png;base64,${barcodePngBuffer.toString("base64")}`;
+      } catch (e) {
+        console.error("Barcode generation error:", e);
+      }
+      processedRowsHtml.push(`
+        <tr>
+          <td>${boxType}</td>
+          <td>${sku}</td>
+          <td>${pos}</td>
+          <td>${qty}</td>
+          <td>${caseId}</td>
+          <td><img src="${barcodeDataUrl}" class="barcode-img" alt="${caseId}" /></td>
+        </tr>
+      `);
     }
-    try {
-      await workbook2.xlsx.writeFile(path$d.join(__dirname$1, "..", "Test.xlsx"));
-      return { success: true, fullAmount };
-    } catch (error2) {
-      return { success: false, error: String(error2) };
-    }
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Picking - LS ${priority}</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #000;
+            margin: 0;
+            padding: 0;
+          }
+          .header-table, .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+          }
+          .header-table td, .header-table th,
+          .data-table td, .data-table th {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            text-align: center;
+            vertical-align: middle;
+          }
+          .header-table th, .data-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+          }
+          .data-table tr {
+            height: 40px;
+          }
+          .barcode-img {
+            max-width: 160px;
+            height: 35px;
+            object-fit: contain;
+          }
+          .title {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="title">Picking por Case ID</div>
+        
+        <table class="header-table">
+          <tr>
+            <th>LS</th>
+            <td>LS${priority}</td>
+            <th>Ordem</th>
+            <td>${orderNumber}</td>
+            <th>Destino</th>
+            <td>${municipality}</td>
+          </tr>
+        </table>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Caixa</th>
+              <th>SKU</th>
+              <th>Posição</th>
+              <th>Qtd - MIL</th>
+              <th>Case ID</th>
+              <th>Código de Barras</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${processedRowsHtml.join("")}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+    return {
+      success: true,
+      fullAmount,
+      html: htmlContent
+    };
   }
 );
+ipcMain.handle("print-html-content", async (_2, htmlContent, printerName) => {
+  try {
+    const printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+    await printWindow.loadURL(
+      `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
+    );
+    return new Promise((resolve2) => {
+      printWindow.webContents.print(
+        {
+          silent: true,
+          printBackground: true,
+          deviceName: printerName || void 0
+        },
+        (success, failureReason) => {
+          printWindow.close();
+          if (success) {
+            resolve2({ success: true });
+          } else {
+            resolve2({ success: false, error: failureReason });
+          }
+        }
+      );
+    });
+  } catch (error2) {
+    return { success: false, error: String(error2) };
+  }
+});
 ipcMain.on("window-minimize", () => {
   win == null ? void 0 : win.minimize();
 });

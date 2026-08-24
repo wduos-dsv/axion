@@ -132,7 +132,7 @@ export default function App() {
               <small className="green">Carregando impressoras...</small>
             )}
 
-            <small className="view-subtitle">
+            {/* <small className="view-subtitle">
               Configuração da Impressora Zebra
             </small>
             <small className="view-subtitle dim">PORTA</small>
@@ -159,7 +159,7 @@ export default function App() {
                     ? "solid 2px var(--red-opaque)"
                     : undefined,
               }}
-            />
+            />*/}
           </div>
         </nav>
 
