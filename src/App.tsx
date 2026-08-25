@@ -5,10 +5,11 @@ import CaseID from "./views/CaseID";
 import "./App.css";
 
 import icon from "./assets/logo.svg";
+import OutboundReport from "./views/OutboundReport";
 
 export default function App() {
-  // const [printerPort, setPrinterPort] = useState<number>(9100);
-  // const [printerIP, setPrinterIP] = useState<string>("10.55.22.240");
+  const [zebraPrinterPort, setZebraPrinterPort] = useState<number>(9100);
+  const [zebraPrinterIP, setZebraPrinterIP] = useState<string>("10.55.22.240");
   const [currentView, setCurrentView] = useState<string>("/");
   const [printerList, setPrinterList] = useState<any[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState<string>("");
@@ -22,9 +23,9 @@ export default function App() {
     getPrinters();
   }, []);
 
-  /* const ipRegex =
+  const ipRegex =
     /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-  const isIpValid = ipRegex.test(printerIP); */
+  const isIpValid = ipRegex.test(zebraPrinterIP);
 
   const pages = [
     {
@@ -46,6 +47,21 @@ export default function App() {
       ),
       title: "Picking por Case ID",
       element: <CaseID printer={selectedPrinter} />,
+    },
+    {
+      url: "/outbound-repot",
+      svg: (
+        <svg viewBox="0 0 24 24">
+          <path d="m24,10.5c0-3.033-2.468-5.5-5.5-5.5h-1.5v-.5c0-1.93-1.57-3.5-3.5-3.5H3.5C1.57,1,0,2.57,0,4.5v2.5h3v-2.5c0-.276.224-.5.5-.5h10c.275,0,.5.224.5.5v12.5H3v-3H0v6h3.061c-.034.162-.061.327-.061.5,0,1.381,1.119,2.5,2.5,2.5s2.5-1.119,2.5-2.5c0-.173-.027-.338-.061-.5h8.122c-.034.162-.061.327-.061.5,0,1.381,1.119,2.5,2.5,2.5s2.5-1.119,2.5-2.5c0-.173-.027-.338-.061-.5h3.061v-9.5Zm-5.5-2.5c1.379,0,2.5,1.122,2.5,2.5v2.5h-4v-5h1.5Zm-11.5,4H0v-3h7v-3l3.707,3.793c.39.391.39,1.024,0,1.414l-3.707,3.793v-3Z" />
+        </svg>
+      ),
+      title: "Report de Transferência",
+      element: (
+        <OutboundReport
+          printerPort={zebraPrinterPort}
+          printerIP={zebraPrinterIP}
+        />
+      ),
     },
   ];
 
@@ -132,17 +148,19 @@ export default function App() {
               <small className="green">Carregando impressoras...</small>
             )}
 
-            {/* <small className="view-subtitle">
+            <small className="view-subtitle">
               Configuração da Impressora Zebra
             </small>
             <small className="view-subtitle dim">PORTA</small>
             <input
               type="number"
               placeholder="9100"
-              onChange={(event) => setPrinterPort(parseInt(event.target.value))}
-              value={printerPort}
+              onChange={(event) =>
+                setZebraPrinterPort(parseInt(event.target.value))
+              }
+              value={zebraPrinterPort}
               style={{
-                border: !printerPort
+                border: !zebraPrinterPort
                   ? "solid 2px var(--red-opaque)"
                   : undefined,
               }}
@@ -151,15 +169,15 @@ export default function App() {
             <input
               type="text"
               placeholder="10.55.22.240"
-              onChange={(event) => setPrinterIP(event.target.value)}
-              value={printerIP}
+              onChange={(event) => setZebraPrinterIP(event.target.value)}
+              value={zebraPrinterIP}
               style={{
                 border:
-                  !isIpValid || printerIP === ""
+                  !isIpValid || zebraPrinterIP === ""
                     ? "solid 2px var(--red-opaque)"
                     : undefined,
               }}
-            />*/}
+            />
           </div>
         </nav>
 

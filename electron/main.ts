@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "fs";
 import ExcelJS from "exceljs";
+import * as net from "node:net";
 
 const require = createRequire(import.meta.url);
-// bwip-js doesn't have a native ESM default export in some setups, use require
 const bwipjs = require("bwip-js");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -53,7 +53,7 @@ function createWindow() {
 }
 
 // helpers
-/* function sendZplOverTcp(
+function sendZplOverTcp(
   ip: string,
   port: number,
   zplData: string,
@@ -93,7 +93,7 @@ function createWindow() {
       resolve();
     });
   });
-} */
+}
 
 function getBoxTypesDatabasePath() {
   if (app.isPackaged) {
@@ -376,6 +376,88 @@ ipcMain.handle("print-html-content", async (_, htmlContent, printerName) => {
         },
       );
     });
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+});
+
+ipcMain.handle("generate-report", async (_, filePath) => {
+  const excelFileData: Array<any> = [];
+  const labelsMap = new Map<
+    string,
+    { lpn: string; items: Array<{ item: string; quantity: number }> }
+  >();
+
+  try {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      return { success: false, error: "Planilha vazia ou inválida." };
+    }
+
+    let headers: string[] = [];
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) {
+        headers = (row.values as Array<any>).map((val) =>
+          String(val || "").trim(),
+        );
+      } else {
+        const rowObject: Record<string, any> = {};
+        const values = row.values as Array<any>;
+        headers.forEach((header, index) => {
+          if (header) {
+            rowObject[header] =
+              values[index] !== undefined ? values[index] : "";
+          }
+        });
+        excelFileData.push(rowObject);
+      }
+    });
+
+    // Grouping by LPN and aggregating items + summing quantities
+    excelFileData.forEach((row) => {
+      const lpnKey = row?.LPN;
+      const itemCode = row?.Item;
+      const rowQuantity = parseFloat(row?.Quantity) || 0;
+
+      if (!lpnKey || !itemCode) return; // Skip if LPN or Item is missing
+
+      // 1. Ensure LPN group exists in the Map
+      if (!labelsMap.has(lpnKey)) {
+        labelsMap.set(lpnKey, { lpn: lpnKey, items: [] });
+      }
+
+      const lpnGroup = labelsMap.get(lpnKey)!;
+
+      // 2. Check if the item already exists in this LPN's items array
+      const existingItem = lpnGroup.items.find((i) => i.item === itemCode);
+
+      if (existingItem) {
+        // If it exists, sum the quantities
+        existingItem.quantity += rowQuantity;
+      } else {
+        // If it doesn't exist, add it as a new entry
+        lpnGroup.items.push({
+          item: itemCode,
+          quantity: rowQuantity,
+        });
+      }
+    });
+
+    // Convert Map back to an array and sort by LPN name alphabetically
+    const labels = Array.from(labelsMap.values()).sort((a, b) =>
+      a.lpn.localeCompare(b.lpn, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }),
+    );
+
+    console.log(labels[23].items);
+
+    return { success: true, labels };
   } catch (error) {
     return { success: false, error: String(error) };
   }
