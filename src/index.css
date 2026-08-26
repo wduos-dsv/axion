@@ -133,6 +133,28 @@ input[type="file"]::file-selector-button {
   color: white;
 }
 
+table * {
+  font-size: 0.7rem;
+}
+table {
+  width: 100%;
+  border: solid 1px var(--accent-opaque);
+}
+thead {
+  background-image: linear-gradient(to right, var(--gray), var(--gray-1));
+}
+th {
+  padding: var(--spacing-3);
+  color: white;
+}
+td {
+  width: 25%;
+  padding: var(--spacing-3);
+}
+tr:nth-child(even) > td {
+  background-color: var(--background-color);
+}
+
 .dim {
   opacity: 0.5;
   color: inherit;
@@ -158,6 +180,9 @@ input[type="file"]::file-selector-button {
 }
 .mrg-top-3 {
   margin-top: var(--spacing-3);
+}
+.mrg-top-2 {
+  margin-top: var(--spacing-2);
 }
 .hold {
   animation: pulse 1s ease-in infinite alternate;

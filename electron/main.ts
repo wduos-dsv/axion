@@ -27,10 +27,10 @@ function createWindow() {
   win = new BrowserWindow({
     frame: false,
     icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
-    height: 500,
-    minHeight: 500,
-    width: 700,
-    minWidth: 700,
+    height: 550,
+    minHeight: 550,
+    width: 750,
+    minWidth: 750,
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
       nodeIntegration: false,
@@ -164,7 +164,11 @@ ipcMain.handle(
       const hasCartonType = spreadsheetRow?.["Carton Type"];
       const isPalletFull = () => {
         if (hasCartonType) {
-          return spreadsheetRow?.["Carton Type"] === "PALLET";
+          return (
+            spreadsheetRow?.["Carton Type"] === "PALLET" ||
+            (spreadsheetRow?.["Carton Type"] === "SACO" &&
+              quantityInRow === 400)
+          );
         } else {
           return quantityInRow === 400 || quantityInRow === 360;
         }
@@ -393,8 +397,8 @@ ipcMain.handle("print-html-content", async (_, htmlContent, printerName) => {
 });
 
 ipcMain.handle("generate-report", async (_, filePath, config) => {
-  const ip = config.ip || "10.55.22.240";
-  const port = config.port || 9100;
+  // const ip = config.ip || "10.55.22.240";
+  // const port = config.port || 9100;
 
   const excelFileData: Array<any> = [];
   const labelsMap = new Map<
@@ -469,13 +473,9 @@ ipcMain.handle("generate-report", async (_, filePath, config) => {
       }),
     );
 
-    console.log(labels[23].items);
-
-    const zpl = genReportLabel();
-
-    await sendZplOverTcp(ip, port, zpl, 0);
-
-    return { success: true, labels };
+    // const zpl = genReportLabel();
+    // await sendZplOverTcp(ip, port, zpl, 0);
+    return { success: true, labels: labels };
   } catch (error) {
     return { success: false, error: String(error) };
   }
