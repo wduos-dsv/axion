@@ -14,7 +14,7 @@ import require$$0$6 from "constants";
 import require$$5 from "assert";
 import require$$0$7 from "zlib";
 import require$$1$1 from "os";
-import "node:net";
+import * as net from "node:net";
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x) {
   return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
@@ -62144,6 +62144,41 @@ function createWindow() {
     win.loadFile(path$d.join(RENDERER_DIST, "index.html"));
   }
 }
+function sendZplOverTcp(ip, port, zplData, timeoutMs = 5e3) {
+  return new Promise((resolve2, reject2) => {
+    const client = new net.Socket();
+    if (timeoutMs > 0) {
+      client.setTimeout(timeoutMs);
+    }
+    client.connect(port, ip, () => {
+      client.write(zplData, "utf-8", () => {
+        setTimeout(() => {
+          client.end();
+        }, 500);
+      });
+    });
+    client.on("error", (err2) => {
+      client.destroy();
+      reject2(err2);
+    });
+    if (timeoutMs > 0) {
+      client.on("timeout", () => {
+        client.destroy();
+        reject2(
+          new Error(
+            "Tempo de conexão esgotado. Verifique a rede ou configurações da impressora."
+          )
+        );
+      });
+    }
+    client.on("close", () => {
+      resolve2();
+    });
+  });
+}
+function genReportLabel(uniqueCode, counter) {
+  return `^XA~TA000~JSN^LT0^MNW^MTT^LH0,0^PR4,4~SD10^CI27^MMT^PW815^LL416^LS0^FT53,56^A0N,28,30^FH^CI28^FDSKU^FS^CI27^FO29,18^GB772,381,6^FS^FO651,338^GFA,353,900,20,:Z64:eJyN08GRhSAMBuA4HDhaAqVYGtxeGa8VOtgS1hI4cmDIhj/4jDvM7DKK8ulICJHofy0wc6IoPWcZcpHukMG5DcLwY9XBqrXuYY1o43Ma77D+sDeMiRwmgn0vbLZEXs61TU4jemMen5JLpp3n8pyas7YhNMQW+pUHfe9pETbWejRjydpRSLNXKIpVWJtxd4p1HNY4LSzLLVJq7FxYCV1T+ofVXSx/rKmxuy22sUnVi6XbxsrEXreNnZUHT6swx1+aUrFtYW7azDfMa0UZ6xJyIXwAZXTt+Yn4flmARWs5aPIx2bS0MFT6qZNdtbuwOv+IoCnVf4F2lIc1lFuju/oW7QeGiZHI:B182^FT47,359^A0N,28,28^FH^CI28^FDREC12345001ARQ^FS^CI27^FT48,377^A0N,17,18^FH^CI28^FDReport de Transferencia^FS^CI27^FO48,326^GB734,0,3^FS^FT231,56^A0N,28,30^FH^CI28^FDQTD^FS^CI27^FO411,37^GB0,270,3^FS^FO223,40^GB0,268,2^FS^FO47,65^GB341,0,2^FS^FT53,96^A0N,28,30^FH^CI28^FD10215610^FS^CI27^FT53,132^A0N,28,30^FH^CI28^FD10215610^FS^CI27^FT53,167^A0N,28,30^FH^CI28^FD10215610^FS^CI27^FT53,202^A0N,28,30^FH^CI28^FD10215610^FS^CI27^FT53,237^A0N,28,30^FH^CI28^FD10215610^FS^CI27^FT53,273^A0N,28,30^FH^CI28^FD10215610^FS^CI27^FT53,308^A0N,28,30^FH^CI28^FD10215610^FS^CI27^FT231,94^A0N,28,30^FH^CI28^FD10^FS^CI27^FT230,132^A0N,28,30^FH^CI28^FD20^FS^CI27^FT231,167^A0N,28,30^FH^CI28^FD30^FS^CI27^FT230,202^A0N,28,30^FH^CI28^FD40^FS^CI27^FT230,237^A0N,28,30^FH^CI28^FD50^FS^CI27^FT230,273^A0N,28,30^FH^CI28^FD60^FS^CI27^FT230,308^A0N,28,30^FH^CI28^FD70^FS^CI27^FT437,56^A0N,28,30^FH^CI28^FDSKU^FS^CI27^FT615,56^A0N,28,30^FH^CI28^FDQTD^FS^CI27^FO607,40^GB0,268,2^FS^FO431,65^GB341,0,2^FS^FT437,96^A0N,28,30^FH^CI28^FD10226446^FS^CI27^FT437,132^A0N,28,30^FH^CI28^FD10226446^FS^CI27^FT437,167^A0N,28,30^FH^CI28^FD10226446^FS^CI27^FT437,202^A0N,28,30^FH^CI28^FD10226446^FS^CI27^FT437,237^A0N,28,30^FH^CI28^FD10226446^FS^CI27^FT437,273^A0N,28,30^FH^CI28^FD10226446^FS^CI27^FT437,308^A0N,28,30^FH^CI28^FD10226446^FS^CI27^FT614,96^A0N,28,30^FH^CI28^FD80^FS^CI27^FT614,132^A0N,28,30^FH^CI28^FD90^FS^CI27^FT615,167^A0N,28,30^FH^CI28^FD100^FS^CI27^FT614,202^A0N,28,30^FH^CI28^FD110^FS^CI27^FT614,237^A0N,28,30^FH^CI28^FD120^FS^CI27^FT614,273^A0N,28,30^FH^CI28^FD130^FS^CI27^FT614,308^A0N,28,30^FH^CI28^FD140^FS^CI27^PQ1,0,1,Y^XZ`;
+}
 function getBoxTypesDatabasePath() {
   if (app.isPackaged) {
     return path$d.join(process.resourcesPath, "box-types.json");
@@ -62192,8 +62227,15 @@ ipcMain.handle(
     const orderData = [];
     excelFileData.forEach((spreadsheetRow) => {
       const quantityInRow = parseInt(spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity);
-      const isPalletFull = quantityInRow === 400 || quantityInRow === 360;
-      if (isPalletFull) {
+      const hasCartonType = spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"];
+      const isPalletFull = () => {
+        if (hasCartonType) {
+          return (spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"]) === "PALLET";
+        } else {
+          return quantityInRow === 400 || quantityInRow === 360;
+        }
+      };
+      if (isPalletFull()) {
         fullAmount++;
       } else {
         orderData.push({
@@ -62391,7 +62433,9 @@ ipcMain.handle("print-html-content", async (_2, htmlContent, printerName) => {
     return { success: false, error: String(error2) };
   }
 });
-ipcMain.handle("generate-report", async (_2, filePath) => {
+ipcMain.handle("generate-report", async (_2, filePath, config) => {
+  const ip = config.ip || "10.55.22.240";
+  const port = config.port || 9100;
   const excelFileData = [];
   const labelsMap = /* @__PURE__ */ new Map();
   try {
@@ -62444,6 +62488,8 @@ ipcMain.handle("generate-report", async (_2, filePath) => {
       })
     );
     console.log(labels[23].items);
+    const zpl = genReportLabel();
+    await sendZplOverTcp(ip, port, zpl, 0);
     return { success: true, labels };
   } catch (error2) {
     return { success: false, error: String(error2) };

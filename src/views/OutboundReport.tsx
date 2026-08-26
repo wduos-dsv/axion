@@ -47,17 +47,29 @@ export default function OutboundReport({
       return;
     }
 
-    const result = await (window as any).ipcRenderer.invoke(
-      "generate-report",
-      pickDetailFilePath,
-    );
+    try {
+      const config = {
+        ip: printerIP,
+        port: printerPort,
+      };
 
-    if (result.success) {
-      setDisplayStatus("success");
-      setDisplayStatusMessage("Impressão do report concluída!");
-    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (window as any).ipcRenderer.invoke(
+        "generate-report",
+        pickDetailFilePath,
+        config,
+      );
+
+      if (result.success) {
+        setDisplayStatus("success");
+        setDisplayStatusMessage("Impressão do report concluída!");
+      } else {
+        setDisplayStatus("error");
+        setDisplayStatusMessage(`Erro ao gerar report: ${result.error}`);
+      }
+    } catch (error) {
       setDisplayStatus("error");
-      setDisplayStatusMessage(`Erro ao gerar report: ${result.error}`);
+      setDisplayStatusMessage(`Erro de comunicação: ${error}`);
     }
   };
 
