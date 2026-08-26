@@ -95,8 +95,40 @@ function sendZplOverTcp(
   });
 }
 
-function genReportLabel(uniqueCode?: string, counter?: number): string {
-  return `^XA~TA000~JSN^LT0^MNW^MTT^LH0,0^PR4,4~SD10^CI27^MMT^PW815^LL416^LS0^FT53,56^A0N,28,30^FH\^CI28^FDSKU^FS^CI27^FO29,18^GB772,381,6^FS^FO651,338^GFA,353,900,20,:Z64:eJyN08GRhSAMBuA4HDhaAqVYGtxeGa8VOtgS1hI4cmDIhj/4jDvM7DKK8ulICJHofy0wc6IoPWcZcpHukMG5DcLwY9XBqrXuYY1o43Ma77D+sDeMiRwmgn0vbLZEXs61TU4jemMen5JLpp3n8pyas7YhNMQW+pUHfe9pETbWejRjydpRSLNXKIpVWJtxd4p1HNY4LSzLLVJq7FxYCV1T+ofVXSx/rKmxuy22sUnVi6XbxsrEXreNnZUHT6swx1+aUrFtYW7azDfMa0UZ6xJyIXwAZXTt+Yn4flmARWs5aPIx2bS0MFT6qZNdtbuwOv+IoCnVf4F2lIc1lFuju/oW7QeGiZHI:B182^FT47,359^A0N,28,28^FH\^CI28^FDREC12345001ARQ^FS^CI27^FT48,377^A0N,17,18^FH\^CI28^FDReport de Transferencia^FS^CI27^FO48,326^GB734,0,3^FS^FT231,56^A0N,28,30^FH\^CI28^FDQTD^FS^CI27^FO411,37^GB0,270,3^FS^FO223,40^GB0,268,2^FS^FO47,65^GB341,0,2^FS^FT53,96^A0N,28,30^FH\^CI28^FD10215610^FS^CI27^FT53,132^A0N,28,30^FH\^CI28^FD10215610^FS^CI27^FT53,167^A0N,28,30^FH\^CI28^FD10215610^FS^CI27^FT53,202^A0N,28,30^FH\^CI28^FD10215610^FS^CI27^FT53,237^A0N,28,30^FH\^CI28^FD10215610^FS^CI27^FT53,273^A0N,28,30^FH\^CI28^FD10215610^FS^CI27^FT53,308^A0N,28,30^FH\^CI28^FD10215610^FS^CI27^FT231,94^A0N,28,30^FH\^CI28^FD10^FS^CI27^FT230,132^A0N,28,30^FH\^CI28^FD20^FS^CI27^FT231,167^A0N,28,30^FH\^CI28^FD30^FS^CI27^FT230,202^A0N,28,30^FH\^CI28^FD40^FS^CI27^FT230,237^A0N,28,30^FH\^CI28^FD50^FS^CI27^FT230,273^A0N,28,30^FH\^CI28^FD60^FS^CI27^FT230,308^A0N,28,30^FH\^CI28^FD70^FS^CI27^FT437,56^A0N,28,30^FH\^CI28^FDSKU^FS^CI27^FT615,56^A0N,28,30^FH\^CI28^FDQTD^FS^CI27^FO607,40^GB0,268,2^FS^FO431,65^GB341,0,2^FS^FT437,96^A0N,28,30^FH\^CI28^FD10226446^FS^CI27^FT437,132^A0N,28,30^FH\^CI28^FD10226446^FS^CI27^FT437,167^A0N,28,30^FH\^CI28^FD10226446^FS^CI27^FT437,202^A0N,28,30^FH\^CI28^FD10226446^FS^CI27^FT437,237^A0N,28,30^FH\^CI28^FD10226446^FS^CI27^FT437,273^A0N,28,30^FH\^CI28^FD10226446^FS^CI27^FT437,308^A0N,28,30^FH\^CI28^FD10226446^FS^CI27^FT614,96^A0N,28,30^FH\^CI28^FD80^FS^CI27^FT614,132^A0N,28,30^FH\^CI28^FD90^FS^CI27^FT615,167^A0N,28,30^FH\^CI28^FD100^FS^CI27^FT614,202^A0N,28,30^FH\^CI28^FD110^FS^CI27^FT614,237^A0N,28,30^FH\^CI28^FD120^FS^CI27^FT614,273^A0N,28,30^FH\^CI28^FD130^FS^CI27^FT614,308^A0N,28,30^FH\^CI28^FD140^FS^CI27^PQ1,0,1,Y^XZ`;
+function genReportLabel(
+  lpn: string,
+  items: Array<{ item: string; quantity?: number }>,
+): string {
+  // Split items into pairs (rows of 2 items side by side)
+  const rows: Array<{
+    first?: { item: string; quantity?: number };
+    second?: { item: string; quantity?: number };
+  }> = [];
+  for (let i = 0; i < items.length; i += 2) {
+    rows.push({
+      first: items[i],
+      second: items[i + 1],
+    });
+  }
+
+  // Generate ZPL commands for each populated row slot (up to 7 rows supported by the label template)
+  let tableRowsZpl = "";
+  rows.forEach((row, rowIndex) => {
+    // Y offsets for left and right columns based on your fixed row spacing (~35 units apart)
+    const ySku = 96 + rowIndex * 35;
+    const yQty = 94 + rowIndex * 35;
+
+    if (row.first) {
+      tableRowsZpl += `^FT53,${ySku}^A0N,28,30^FH\\^CI28^FD${row.first.item}^FS^CI27^`;
+      tableRowsZpl += `^FT231,${yQty}^A0N,28,30^FH\\^CI28^FD${row.first.quantity ?? ""}^FS^CI27^`;
+    }
+    if (row.second) {
+      tableRowsZpl += `^FT437,${ySku}^A0N,28,30^FH\\^CI28^FD${row.second.item}^FS^CI27^`;
+      tableRowsZpl += `^FT614,${yQty}^A0N,28,30^FH\\^CI28^FD${row.second.quantity ?? ""}^FS^CI27^`;
+    }
+  });
+
+  return `^XA~TA000~JSN^LT0^MNW^MTT^LH0,0^PR4,4~SD10^CI27^MMT^PW815^LL416^LS0^FT53,56^A0N,28,30^FH\\^CI28^FDSKU^FS^CI27^FO29,18^GB772,381,6^FS^FO651,338^GFA,353,900,20,:Z64:eJyN08GRhSAMBuA4HDhaAqVYGtxeGa8VOtgS1hI4cmDIhj/4jDvM7DKK8ulICJHofy0wc6IoPWcZcpHukMG5DcLwY9XBqrXuYY1o43Ma77D+sDeMiRwmgn0vbLZEXs61TU4jemMen5JLpp3n8pyas7YhNMQW+pUHfe9pETbWejRjydpRSLNXKIpVWJtxd4p1HNY4LSzLLVJq7FxYCV1T+ofVXSx/rKmxuy22sUnVi6XbxsrEXreNnZUHT6swx1+aUrFtYW7azDfMa0UZ6xJyIXwAZXTt+Yn4flmARWs5aPIx2bS0MFT6qZNdtbuwOv+IoCnVf4F2lIc1lFuju/oW7QeGiZHI:B182^FT47,359^A0N,28,28^FH\\^CI28^FD${lpn}^FS^CI27^FT48,377^A0N,17,18^FH\\^CI28^FDReport de Transferencia^FS^CI27^FO48,326^GB734,0,3^FS^FT231,56^A0N,28,30^FH\\^CI28^FDQTD^FS^CI27^FO411,37^GB0,270,3^FS^FO223,40^GB0,268,2^FS^FO47,65^GB341,0,2^FS^FT437,56^A0N,28,30^FH\\^CI28^FDSKU^FS^CI27^FT615,56^A0N,28,30^FH\\^CI28^FDQTD^FS^CI27^FO607,40^GB0,268,2^FS^FO431,65^GB341,0,2^FS^${tableRowsZpl}^PQ1,0,1,Y^XZ`;
 }
 
 function getBoxTypesDatabasePath() {
@@ -396,10 +428,7 @@ ipcMain.handle("print-html-content", async (_, htmlContent, printerName) => {
   }
 });
 
-ipcMain.handle("generate-report", async (_, filePath, config) => {
-  // const ip = config.ip || "10.55.22.240";
-  // const port = config.port || 9100;
-
+ipcMain.handle("generate-report", async (_, filePath) => {
   const excelFileData: Array<any> = [];
   const labelsMap = new Map<
     string,
@@ -472,10 +501,35 @@ ipcMain.handle("generate-report", async (_, filePath, config) => {
         sensitivity: "base",
       }),
     );
-
-    // const zpl = genReportLabel();
-    // await sendZplOverTcp(ip, port, zpl, 0);
     return { success: true, labels: labels };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+});
+
+ipcMain.handle("print-report", async (_, config) => {
+  try {
+    const ip = config.ip || "10.55.22.240";
+    const port = config.port || 9100;
+    const data = config?.data; // Expects allLabelContents array passed from frontend
+
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return {
+        success: false,
+        error: "Sem dados extraídos do Pick Detail para impressão.",
+      };
+    }
+
+    // Loop through all labels and send their corresponding ZPL commands
+    for (const labelSet of data) {
+      const lpn = labelSet.lpn;
+      const items = labelSet.items || [];
+
+      const zpl = genReportLabel(lpn, items);
+      await sendZplOverTcp(ip, port, zpl, 5000);
+    }
+
+    return { success: true };
   } catch (error) {
     return { success: false, error: String(error) };
   }

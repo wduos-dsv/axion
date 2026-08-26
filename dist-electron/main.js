@@ -14,7 +14,7 @@ import require$$0$6 from "constants";
 import require$$5 from "assert";
 import require$$0$7 from "zlib";
 import require$$1$1 from "os";
-import "node:net";
+import * as net from "node:net";
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x) {
   return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
@@ -4063,10 +4063,10 @@ function requireSafeBuffer$5() {
   })(safeBuffer$5, safeBuffer$5.exports);
   return safeBuffer$5.exports;
 }
-var util$i = {};
+var util$h = {};
 var hasRequiredUtil$1;
 function requireUtil$1() {
-  if (hasRequiredUtil$1) return util$i;
+  if (hasRequiredUtil$1) return util$h;
   hasRequiredUtil$1 = 1;
   function isArray2(arg) {
     if (Array.isArray) {
@@ -4074,65 +4074,65 @@ function requireUtil$1() {
     }
     return objectToString2(arg) === "[object Array]";
   }
-  util$i.isArray = isArray2;
+  util$h.isArray = isArray2;
   function isBoolean2(arg) {
     return typeof arg === "boolean";
   }
-  util$i.isBoolean = isBoolean2;
+  util$h.isBoolean = isBoolean2;
   function isNull(arg) {
     return arg === null;
   }
-  util$i.isNull = isNull;
+  util$h.isNull = isNull;
   function isNullOrUndefined(arg) {
     return arg == null;
   }
-  util$i.isNullOrUndefined = isNullOrUndefined;
+  util$h.isNullOrUndefined = isNullOrUndefined;
   function isNumber(arg) {
     return typeof arg === "number";
   }
-  util$i.isNumber = isNumber;
+  util$h.isNumber = isNumber;
   function isString(arg) {
     return typeof arg === "string";
   }
-  util$i.isString = isString;
+  util$h.isString = isString;
   function isSymbol2(arg) {
     return typeof arg === "symbol";
   }
-  util$i.isSymbol = isSymbol2;
+  util$h.isSymbol = isSymbol2;
   function isUndefined2(arg) {
     return arg === void 0;
   }
-  util$i.isUndefined = isUndefined2;
+  util$h.isUndefined = isUndefined2;
   function isRegExp2(re) {
     return objectToString2(re) === "[object RegExp]";
   }
-  util$i.isRegExp = isRegExp2;
+  util$h.isRegExp = isRegExp2;
   function isObject2(arg) {
     return typeof arg === "object" && arg !== null;
   }
-  util$i.isObject = isObject2;
+  util$h.isObject = isObject2;
   function isDate(d) {
     return objectToString2(d) === "[object Date]";
   }
-  util$i.isDate = isDate;
+  util$h.isDate = isDate;
   function isError(e) {
     return objectToString2(e) === "[object Error]" || e instanceof Error;
   }
-  util$i.isError = isError;
+  util$h.isError = isError;
   function isFunction2(arg) {
     return typeof arg === "function";
   }
-  util$i.isFunction = isFunction2;
+  util$h.isFunction = isFunction2;
   function isPrimitive(arg) {
     return arg === null || typeof arg === "boolean" || typeof arg === "number" || typeof arg === "string" || typeof arg === "symbol" || // ES6 symbol
     typeof arg === "undefined";
   }
-  util$i.isPrimitive = isPrimitive;
-  util$i.isBuffer = Buffer.isBuffer;
+  util$h.isPrimitive = isPrimitive;
+  util$h.isBuffer = Buffer.isBuffer;
   function objectToString2(o) {
     return Object.prototype.toString.call(o);
   }
-  return util$i;
+  return util$h;
 }
 var inherits$a = { exports: {} };
 var inherits_browser = { exports: {} };
@@ -62144,6 +62144,61 @@ function createWindow() {
     win.loadFile(path$d.join(RENDERER_DIST, "index.html"));
   }
 }
+function sendZplOverTcp(ip, port, zplData, timeoutMs = 5e3) {
+  return new Promise((resolve2, reject2) => {
+    const client = new net.Socket();
+    if (timeoutMs > 0) {
+      client.setTimeout(timeoutMs);
+    }
+    client.connect(port, ip, () => {
+      client.write(zplData, "utf-8", () => {
+        setTimeout(() => {
+          client.end();
+        }, 500);
+      });
+    });
+    client.on("error", (err2) => {
+      client.destroy();
+      reject2(err2);
+    });
+    if (timeoutMs > 0) {
+      client.on("timeout", () => {
+        client.destroy();
+        reject2(
+          new Error(
+            "Tempo de conexão esgotado. Verifique a rede ou configurações da impressora."
+          )
+        );
+      });
+    }
+    client.on("close", () => {
+      resolve2();
+    });
+  });
+}
+function genReportLabel(lpn, items) {
+  const rows = [];
+  for (let i = 0; i < items.length; i += 2) {
+    rows.push({
+      first: items[i],
+      second: items[i + 1]
+    });
+  }
+  let tableRowsZpl = "";
+  rows.forEach((row2, rowIndex) => {
+    const ySku = 96 + rowIndex * 35;
+    const yQty = 94 + rowIndex * 35;
+    if (row2.first) {
+      tableRowsZpl += `^FT53,${ySku}^A0N,28,30^FH\\^CI28^FD${row2.first.item}^FS^CI27^`;
+      tableRowsZpl += `^FT231,${yQty}^A0N,28,30^FH\\^CI28^FD${row2.first.quantity ?? ""}^FS^CI27^`;
+    }
+    if (row2.second) {
+      tableRowsZpl += `^FT437,${ySku}^A0N,28,30^FH\\^CI28^FD${row2.second.item}^FS^CI27^`;
+      tableRowsZpl += `^FT614,${yQty}^A0N,28,30^FH\\^CI28^FD${row2.second.quantity ?? ""}^FS^CI27^`;
+    }
+  });
+  return `^XA~TA000~JSN^LT0^MNW^MTT^LH0,0^PR4,4~SD10^CI27^MMT^PW815^LL416^LS0^FT53,56^A0N,28,30^FH\\^CI28^FDSKU^FS^CI27^FO29,18^GB772,381,6^FS^FO651,338^GFA,353,900,20,:Z64:eJyN08GRhSAMBuA4HDhaAqVYGtxeGa8VOtgS1hI4cmDIhj/4jDvM7DKK8ulICJHofy0wc6IoPWcZcpHukMG5DcLwY9XBqrXuYY1o43Ma77D+sDeMiRwmgn0vbLZEXs61TU4jemMen5JLpp3n8pyas7YhNMQW+pUHfe9pETbWejRjydpRSLNXKIpVWJtxd4p1HNY4LSzLLVJq7FxYCV1T+ofVXSx/rKmxuy22sUnVi6XbxsrEXreNnZUHT6swx1+aUrFtYW7azDfMa0UZ6xJyIXwAZXTt+Yn4flmARWs5aPIx2bS0MFT6qZNdtbuwOv+IoCnVf4F2lIc1lFuju/oW7QeGiZHI:B182^FT47,359^A0N,28,28^FH\\^CI28^FD${lpn}^FS^CI27^FT48,377^A0N,17,18^FH\\^CI28^FDReport de Transferencia^FS^CI27^FO48,326^GB734,0,3^FS^FT231,56^A0N,28,30^FH\\^CI28^FDQTD^FS^CI27^FO411,37^GB0,270,3^FS^FO223,40^GB0,268,2^FS^FO47,65^GB341,0,2^FS^FT437,56^A0N,28,30^FH\\^CI28^FDSKU^FS^CI27^FT615,56^A0N,28,30^FH\\^CI28^FDQTD^FS^CI27^FO607,40^GB0,268,2^FS^FO431,65^GB341,0,2^FS^${tableRowsZpl}^PQ1,0,1,Y^XZ`;
+}
 function getBoxTypesDatabasePath() {
   if (app.isPackaged) {
     return path$d.join(process.resourcesPath, "box-types.json");
@@ -62398,7 +62453,7 @@ ipcMain.handle("print-html-content", async (_2, htmlContent, printerName) => {
     return { success: false, error: String(error2) };
   }
 });
-ipcMain.handle("generate-report", async (_2, filePath, config) => {
+ipcMain.handle("generate-report", async (_2, filePath) => {
   const excelFileData = [];
   const labelsMap = /* @__PURE__ */ new Map();
   try {
@@ -62451,6 +62506,28 @@ ipcMain.handle("generate-report", async (_2, filePath, config) => {
       })
     );
     return { success: true, labels };
+  } catch (error2) {
+    return { success: false, error: String(error2) };
+  }
+});
+ipcMain.handle("print-report", async (_2, config) => {
+  try {
+    const ip = config.ip || "10.55.22.240";
+    const port = config.port || 9100;
+    const data = config == null ? void 0 : config.data;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return {
+        success: false,
+        error: "Sem dados extraídos do Pick Detail para impressão."
+      };
+    }
+    for (const labelSet of data) {
+      const lpn = labelSet.lpn;
+      const items = labelSet.items || [];
+      const zpl = genReportLabel(lpn, items);
+      await sendZplOverTcp(ip, port, zpl, 5e3);
+    }
+    return { success: true };
   } catch (error2) {
     return { success: false, error: String(error2) };
   }

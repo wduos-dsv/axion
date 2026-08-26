@@ -22,7 +22,6 @@ export default function OutboundReport({
   printerPort,
   printerIP,
 }: PrinterInfo) {
-  const [pickDetailFilePath, setPickDetailFilePath] = useState("");
   const [allLabelContents, setAllLabelContents] = useState<ReportLabelSet[]>(
     [],
   );
@@ -34,7 +33,6 @@ export default function OutboundReport({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleReadPickDetailFile = async (file: any) => {
     if (!file) {
-      setPickDetailFilePath("");
       return;
     }
 
@@ -43,8 +41,6 @@ export default function OutboundReport({
       if (!filePath) {
         throw new Error("Caminho do arquivo não encontrado.");
       }
-
-      setPickDetailFilePath(filePath);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (window as any).ipcRenderer.invoke(
@@ -72,7 +68,7 @@ export default function OutboundReport({
     }
   };
 
-  const generateReport = async () => {
+  const printReport = async () => {
     setDisplayStatus("awaiting");
 
     if (!printerIP || !printerPort) {
@@ -86,12 +82,12 @@ export default function OutboundReport({
       const config = {
         ip: printerIP,
         port: printerPort,
+        data: allLabelContents,
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (window as any).ipcRenderer.invoke(
-        "generate-report",
-        pickDetailFilePath,
+        "print-report",
         config,
       );
 
@@ -100,7 +96,7 @@ export default function OutboundReport({
         setDisplayStatusMessage("Impressão do report concluída!");
       } else {
         setDisplayStatus("error");
-        setDisplayStatusMessage(`Erro ao gerar report: ${result.error}`);
+        setDisplayStatusMessage(`Erro ao imprimir report: ${result.error}`);
       }
     } catch (error) {
       setDisplayStatus("error");
@@ -221,7 +217,7 @@ export default function OutboundReport({
                       colSpan={2}
                       className={isOverLimit ? "err" : "green"}
                     >
-                      Quantidade: {totalQuantity}
+                      Quantidade Total - {totalQuantity}
                     </th>
                   </tr>
                 );
@@ -237,7 +233,7 @@ export default function OutboundReport({
             ? "main-process-btn disabled"
             : "main-process-btn"
         }
-        onClick={() => generateReport()}
+        onClick={() => printReport()}
         disabled={displayStatus === "awaiting"}
       >
         Iniciar Impressão
