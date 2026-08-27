@@ -22,6 +22,7 @@ export default function OutboundReport({
   printerPort,
   printerIP,
 }: PrinterInfo) {
+  const [pickDetailFilePath, setPickDetailFilePath] = useState("");
   const [allLabelContents, setAllLabelContents] = useState<ReportLabelSet[]>(
     [],
   );
@@ -41,6 +42,8 @@ export default function OutboundReport({
       if (!filePath) {
         throw new Error("Caminho do arquivo não encontrado.");
       }
+
+      setPickDetailFilePath(filePath);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (window as any).ipcRenderer.invoke(
@@ -74,6 +77,13 @@ export default function OutboundReport({
     if (!printerIP || !printerPort) {
       setDisplayStatus("error");
       setDisplayStatusMessage("Por favor, configure a impressora Zebra!");
+
+      return;
+    }
+
+    if (!pickDetailFilePath) {
+      setDisplayStatus("error");
+      setDisplayStatusMessage("Por favor, selecione o arquivo para processar.");
 
       return;
     }

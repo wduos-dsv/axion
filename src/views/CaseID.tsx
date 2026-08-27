@@ -51,6 +51,13 @@ export default function CaseID({ printer }: printerInfo) {
       return;
     }
 
+    if (!pickDetailFilePath) {
+      setDisplayStatus("error");
+      setDisplayStatusMessage("Por favor, selecione o arquivo para processar.");
+
+      return;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (window as any).ipcRenderer.invoke(
       "generate-case-id",
