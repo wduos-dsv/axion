@@ -176,6 +176,13 @@ ipcMain.handle(
       return { success: false, error: String(error) };
     }
 
+    if (excelFileData.length > 100) {
+      return {
+        success: false,
+        error: "Limite de linhas excedido. Verifique o arquivo selecionado!",
+      };
+    }
+
     const orderNumber = excelFileData[0]?.["Order Number"] || "";
     let fullAmount = 0;
 
