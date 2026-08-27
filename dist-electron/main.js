@@ -62246,7 +62246,7 @@ ipcMain.handle(
     let fullAmount = 0;
     const orderData = [];
     excelFileData.forEach((spreadsheetRow) => {
-      const quantityInRow = parseInt(spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity);
+      const quantityInRow = parseFloat(spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity) || 0;
       const hasCartonType = spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"];
       const isPalletFull = () => {
         if (hasCartonType) {
@@ -62261,7 +62261,7 @@ ipcMain.handle(
         orderData.push({
           item: (spreadsheetRow == null ? void 0 : spreadsheetRow.Item) || "",
           location: (spreadsheetRow == null ? void 0 : spreadsheetRow.Location) || "",
-          quantity: (spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity) || "",
+          quantity: quantityInRow,
           caseId: (spreadsheetRow == null ? void 0 : spreadsheetRow["Case ID"]) || ""
         });
       }
@@ -62279,6 +62279,48 @@ ipcMain.handle(
       console.log("Failed to load box-types.json database:", error2);
       return { success: false, error: error2.message };
     }
+    let boxTotalBoxes = 0;
+    let sleeveTotalBoxes = 0;
+    let nineTotalBoxes = 0;
+    let fumoTotalBoxes = 0;
+    const getBaseGroup = (rawType) => {
+      const trimmed = rawType.trim().toUpperCase();
+      const firstSpace = trimmed.indexOf(" ");
+      return firstSpace === -1 ? trimmed : trimmed.substring(0, firstSpace);
+    };
+    orderData.forEach((spreadsheetRow) => {
+      const qtyMil = Number(spreadsheetRow == null ? void 0 : spreadsheetRow.quantity) || 0;
+      const sku = String((spreadsheetRow == null ? void 0 : spreadsheetRow.item) || "");
+      const dbType = getBoxTypeFromDb(sku);
+      const group = getBaseGroup(dbType);
+      if (group === "BOX") {
+        boxTotalBoxes += qtyMil / 10;
+      } else if (group === "SLIVE") {
+        sleeveTotalBoxes += qtyMil / 10;
+      } else if (group === "NINE") {
+        nineTotalBoxes += qtyMil / 10;
+      } else if (group === "FUMO") {
+        fumoTotalBoxes += qtyMil / 11.7;
+      }
+    });
+    const calculatePalletsAndLeftovers = (totalBoxes, capacity) => {
+      const roundedBoxes = Math.round(totalBoxes * 1e3) / 1e3;
+      const pallets = Math.floor(roundedBoxes / capacity);
+      const boxesLeft = Math.round(roundedBoxes % capacity * 10) / 10;
+      return { pallets, boxesLeft: Math.floor(boxesLeft) };
+    };
+    const boxCalc = calculatePalletsAndLeftovers(boxTotalBoxes, 40);
+    const sleeveCalc = calculatePalletsAndLeftovers(sleeveTotalBoxes, 40);
+    const nineCalc = calculatePalletsAndLeftovers(nineTotalBoxes, 36);
+    const fumoCalc = calculatePalletsAndLeftovers(fumoTotalBoxes, 18);
+    const boxPalletTotal = boxCalc.pallets;
+    const boxBoxesLeft = boxCalc.boxesLeft;
+    const slivePalletTotal = sleeveCalc.pallets;
+    const sliveBoxesLeft = sleeveCalc.boxesLeft;
+    const ninePalletTotal = nineCalc.pallets;
+    const nineBoxesLeft = nineCalc.boxesLeft;
+    const fumoPalletTotal = fumoCalc.pallets;
+    const fumoBoxesLeft = fumoCalc.boxesLeft;
     const sortedData = [...orderData].sort((a, b) => {
       const typeA = getBoxTypeFromDb(a == null ? void 0 : a.item.toString());
       const typeB = getBoxTypeFromDb(b == null ? void 0 : b.item.toString());
@@ -62349,19 +62391,20 @@ ipcMain.handle(
             margin: 0;
             padding: 0;
           }
-          .header-table, .data-table {
+          .header-table, .data-table, .sum-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 15px;
           }
           .header-table td, .header-table th,
-          .data-table td, .data-table th {
+          .data-table td, .data-table th,
+          .sum-table td, .sum-table th {
             border: 1px solid #000;
             padding: 6px 8px;
             text-align: center;
             vertical-align: middle;
           }
-          .header-table th, .data-table th {
+          .header-table th, .data-table th, .sum-table th {
             background-color: #f2f2f2;
             font-weight: bold;
           }
@@ -62408,6 +62451,39 @@ ipcMain.handle(
           </thead>
           <tbody>
             ${processedRowsHtml.join("")}
+          </tbody>
+        </table>
+
+        <table class="sum-table">
+          <thead>
+            <tr>
+              <th colspan="2">BOX</th>
+              <th colspan="2">SLIVE</th>
+              <th colspan="2">NINE</th>
+              <th colspan="2">FUMO</th>
+            </tr>
+            <tr>
+              <th>Pallets</th>
+              <th>Sobra CX</th>
+              <th>Pallets</th>
+              <th>Sobra CX</th>
+              <th>Pallets</th>
+              <th>Sobra CX</th>
+              <th>Pallets</th>
+              <th>Sobra CX</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>${boxPalletTotal}</th>
+              <td>${boxBoxesLeft}</td>
+              <th>${slivePalletTotal}</th>
+              <td>${sliveBoxesLeft}</td>
+              <th>${ninePalletTotal}</th>
+              <td>${nineBoxesLeft}</td>
+              <th>${fumoPalletTotal}</th>
+              <td>${fumoBoxesLeft}</td>
+            </tr>
           </tbody>
         </table>
       </body>

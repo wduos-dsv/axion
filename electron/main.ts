@@ -38,11 +38,6 @@ function createWindow() {
     },
   });
 
-  /* Use contextBridge
-  win.webContents.on("did-finish-load", () => {
-    win?.webContents.send("main-process-message", new Date().toLocaleString());
-  }); */
-
   win.removeMenu();
 
   if (VITE_DEV_SERVER_URL) {
@@ -185,14 +180,14 @@ ipcMain.handle(
     let fullAmount = 0;
 
     const orderData: Array<{
-      item: number;
+      item: string | number;
       location: string | number;
       quantity: number;
       caseId: string | number;
     }> = [];
 
     excelFileData.forEach((spreadsheetRow) => {
-      const quantityInRow = parseInt(spreadsheetRow?.Quantity);
+      const quantityInRow = parseFloat(spreadsheetRow?.Quantity) || 0;
       const hasCartonType = spreadsheetRow?.["Carton Type"];
       const isPalletFull = () => {
         if (hasCartonType) {
@@ -212,7 +207,7 @@ ipcMain.handle(
         orderData.push({
           item: spreadsheetRow?.Item || "",
           location: spreadsheetRow?.Location || "",
-          quantity: spreadsheetRow?.Quantity || "",
+          quantity: quantityInRow,
           caseId: spreadsheetRow?.["Case ID"] || "",
         });
       }
@@ -222,7 +217,6 @@ ipcMain.handle(
     let db: Array<{ SKU: string; Type: string }> = [];
 
     const getBoxTypeFromDb = (sku: string) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const foundBox: any = db.find((box: any) => box.SKU === sku);
       return foundBox ? foundBox.Type : "";
     };
@@ -235,8 +229,64 @@ ipcMain.handle(
       return { success: false, error: (error as Error).message };
     }
 
+    let boxTotalBoxes = 0;
+    let sleeveTotalBoxes = 0;
+    let nineTotalBoxes = 0;
+    let fumoTotalBoxes = 0;
+
+    // Helper to normalize and get base group name up to the first space
+    const getBaseGroup = (rawType: string) => {
+      const trimmed = rawType.trim().toUpperCase();
+      const firstSpace = trimmed.indexOf(" ");
+      return firstSpace === -1 ? trimmed : trimmed.substring(0, firstSpace);
+    };
+
+    // Calculate totals across all rows
+    orderData.forEach((spreadsheetRow) => {
+      const qtyMil = Number(spreadsheetRow?.quantity) || 0;
+      const sku = String(spreadsheetRow?.item || "");
+      const dbType = getBoxTypeFromDb(sku);
+      const group = getBaseGroup(dbType);
+
+      if (group === "BOX") {
+        boxTotalBoxes += qtyMil / 10;
+      } else if (group === "SLIVE") {
+        sleeveTotalBoxes += qtyMil / 10;
+      } else if (group === "NINE") {
+        nineTotalBoxes += qtyMil / 10;
+      } else if (group === "FUMO") {
+        fumoTotalBoxes += qtyMil / 11.7;
+      }
+    });
+
+    const calculatePalletsAndLeftovers = (
+      totalBoxes: number,
+      capacity: number,
+    ) => {
+      // Round total boxes or keep precise fractions depending on your workflow;
+      // using Math.round handles slight floating-point imprecisions for box counts.
+      const roundedBoxes = Math.round(totalBoxes * 1000) / 1000;
+      const pallets = Math.floor(roundedBoxes / capacity);
+      const boxesLeft = Math.round((roundedBoxes % capacity) * 10) / 10; // optional rounding to 1 decimal if needed
+      return { pallets, boxesLeft: Math.floor(boxesLeft) }; // or keep exact remainder
+    };
+
+    const boxCalc = calculatePalletsAndLeftovers(boxTotalBoxes, 40);
+    const sleeveCalc = calculatePalletsAndLeftovers(sleeveTotalBoxes, 40);
+    const nineCalc = calculatePalletsAndLeftovers(nineTotalBoxes, 36);
+    const fumoCalc = calculatePalletsAndLeftovers(fumoTotalBoxes, 18);
+
+    const boxPalletTotal = boxCalc.pallets;
+    const boxBoxesLeft = boxCalc.boxesLeft;
+    const slivePalletTotal = sleeveCalc.pallets;
+    const sliveBoxesLeft = sleeveCalc.boxesLeft;
+    const ninePalletTotal = nineCalc.pallets;
+    const nineBoxesLeft = nineCalc.boxesLeft;
+    const fumoPalletTotal = fumoCalc.pallets;
+    const fumoBoxesLeft = fumoCalc.boxesLeft;
+    // -------------------------------
+
     const sortedData = [...orderData].sort((a, b) => {
-      // 1. Primary Sort: Box Type
       const typeA = getBoxTypeFromDb(a?.item.toString());
       const typeB = getBoxTypeFromDb(b?.item.toString());
       const typeComparison = typeA.localeCompare(typeB);
@@ -245,7 +295,6 @@ ipcMain.handle(
         return typeComparison;
       }
 
-      // 2. Secondary Sort: SKU
       const skuA = String(a?.item || "");
       const skuB = String(b?.item || "");
       const skuComparison = skuA.localeCompare(skuB, undefined, {
@@ -256,14 +305,12 @@ ipcMain.handle(
         return skuComparison;
       }
 
-      // 3. Tertiary Sort: Location
       const locA = String(a?.location || "");
       const locB = String(b?.location || "");
 
       return locA.localeCompare(locB, undefined, { numeric: true });
     });
 
-    // Generate barcodes as base64 data URLs for HTML injection
     const processedRowsHtml: string[] = [];
 
     for (let i = 0; i < sortedData.length; i++) {
@@ -319,19 +366,20 @@ ipcMain.handle(
             margin: 0;
             padding: 0;
           }
-          .header-table, .data-table {
+          .header-table, .data-table, .sum-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 15px;
           }
           .header-table td, .header-table th,
-          .data-table td, .data-table th {
+          .data-table td, .data-table th,
+          .sum-table td, .sum-table th {
             border: 1px solid #000;
             padding: 6px 8px;
             text-align: center;
             vertical-align: middle;
           }
-          .header-table th, .data-table th {
+          .header-table th, .data-table th, .sum-table th {
             background-color: #f2f2f2;
             font-weight: bold;
           }
@@ -378,6 +426,39 @@ ipcMain.handle(
           </thead>
           <tbody>
             ${processedRowsHtml.join("")}
+          </tbody>
+        </table>
+
+        <table class="sum-table">
+          <thead>
+            <tr>
+              <th colspan="2">BOX</th>
+              <th colspan="2">SLIVE</th>
+              <th colspan="2">NINE</th>
+              <th colspan="2">FUMO</th>
+            </tr>
+            <tr>
+              <th>Pallets</th>
+              <th>Sobra CX</th>
+              <th>Pallets</th>
+              <th>Sobra CX</th>
+              <th>Pallets</th>
+              <th>Sobra CX</th>
+              <th>Pallets</th>
+              <th>Sobra CX</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>${boxPalletTotal}</th>
+              <td>${boxBoxesLeft}</td>
+              <th>${slivePalletTotal}</th>
+              <td>${sliveBoxesLeft}</td>
+              <th>${ninePalletTotal}</th>
+              <td>${nineBoxesLeft}</td>
+              <th>${fumoPalletTotal}</th>
+              <td>${fumoBoxesLeft}</td>
+            </tr>
           </tbody>
         </table>
       </body>
