@@ -62206,6 +62206,37 @@ function getBoxTypesDatabasePath() {
     return path$d.join(__dirname$1, "../resources/box-types.json");
   }
 }
+async function excelFileToObjectArray(path2) {
+  const excelFileData = [];
+  try {
+    const workbook2 = new ExcelJS.Workbook();
+    await workbook2.xlsx.readFile(path2);
+    const worksheet2 = workbook2.worksheets[0];
+    if (!worksheet2) {
+      return;
+    }
+    let headers2 = [];
+    worksheet2.eachRow((row2, rowNumber) => {
+      if (rowNumber === 1) {
+        headers2 = row2.values.map(
+          (val) => String(val || "").trim()
+        );
+      } else {
+        const rowObject = {};
+        const values = row2.values;
+        headers2.forEach((header, index2) => {
+          if (header) {
+            rowObject[header] = values[index2] !== void 0 ? values[index2] : "";
+          }
+        });
+        excelFileData.push(rowObject);
+      }
+    });
+    return excelFileData;
+  } catch (error2) {
+    return;
+  }
+}
 ipcMain.handle("get-printers", async () => {
   if (!win) return [];
   return await win.webContents.getPrintersAsync();
@@ -62214,44 +62245,29 @@ ipcMain.handle(
   "generate-case-id",
   async (_2, priority, municipality, filePath) => {
     var _a;
-    const excelFileData = [];
-    try {
-      const workbook2 = new ExcelJS.Workbook();
-      await workbook2.xlsx.readFile(filePath);
-      const worksheet2 = workbook2.worksheets[0];
-      if (!worksheet2) {
-        return { success: false, error: "Planilha vazia ou inválida." };
-      }
-      let headers2 = [];
-      worksheet2.eachRow((row2, rowNumber) => {
-        if (rowNumber === 1) {
-          headers2 = row2.values.map(
-            (val) => String(val || "").trim()
-          );
-        } else {
-          const rowObject = {};
-          const values = row2.values;
-          headers2.forEach((header, index2) => {
-            if (header) {
-              rowObject[header] = values[index2] !== void 0 ? values[index2] : "";
-            }
-          });
-          excelFileData.push(rowObject);
-        }
-      });
-    } catch (error2) {
-      return { success: false, error: String(error2) };
-    }
-    if (excelFileData.length > 100) {
+    const fileData = await excelFileToObjectArray(filePath) ?? [];
+    if (!fileData) {
       return {
         success: false,
-        error: "Limite de linhas excedido. Verifique o arquivo selecionado!"
+        error: "Limite de linhas excedido.  Verifique se o arquivo selecionado é uma planilha de Pick Detail."
       };
     }
-    const orderNumber = ((_a = excelFileData[0]) == null ? void 0 : _a["Order Number"]) || "";
-    let fullAmount = 0;
+    if (fileData.length > 100) {
+      return {
+        success: false,
+        error: "Limite de linhas excedido.  Verifique se o arquivo selecionado é uma planilha de Pick Detail."
+      };
+    }
+    const orderNumber = ((_a = fileData[0]) == null ? void 0 : _a["Order Number"]) || void 0;
+    if (!orderNumber) {
+      return {
+        success: false,
+        error: `Campo "Order Number" não encontrado! Verifique se o arquivo selecionado é uma planilha de Pick Detail.`
+      };
+    }
     const orderData = [];
-    excelFileData.forEach((spreadsheetRow) => {
+    let fullAmount = 0;
+    fileData.forEach((spreadsheetRow) => {
       const quantityInRow = parseFloat(spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity) || 0;
       const hasCartonType = spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"];
       const isPalletFull = () => {
@@ -62279,8 +62295,8 @@ ipcMain.handle(
       return foundBox ? foundBox.Type : "";
     };
     try {
-      const fileData = require$$0$4.readFileSync(dbPath, "utf-8");
-      db = JSON.parse(fileData);
+      const fileData2 = require$$0$4.readFileSync(dbPath, "utf-8");
+      db = JSON.parse(fileData2);
     } catch (error2) {
       console.log("Failed to load box-types.json database:", error2);
       return { success: false, error: error2.message };

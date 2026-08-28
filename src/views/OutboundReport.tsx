@@ -174,11 +174,8 @@ export default function OutboundReport({
 
                 return (
                   <tr key={rowIndex}>
-                    {/* First Item */}
                     <td>{firstItem?.item || ""}</td>
                     <td>{firstItem?.quantity ?? ""}</td>
-
-                    {/* Second Item (if it exists on this LPN) */}
                     <td>{secondItem?.item || ""}</td>
                     <td>{secondItem?.quantity ?? ""}</td>
                   </tr>
@@ -189,24 +186,19 @@ export default function OutboundReport({
               {(() => {
                 const currentLabel = allLabelContents[currentLabelInView];
                 const itemsList = currentLabel?.items || [];
-
-                // 1. Calculate total quantity
                 const totalQuantity = itemsList.reduce(
                   (sum, item) => sum + (item.quantity || 0),
                   0,
                 );
                 const isOverLimit = totalQuantity > 400;
 
-                // 2. Validate LPN format
                 let isValidLpn = false;
                 if (allLabelContents.length > 0 && currentLabel?.lpn) {
-                  // Get the 10-digit base code from the FIRST label in the entire set
                   const firstLpn = allLabelContents[0].lpn;
                   const baseCodeMatch = firstLpn.match(/^EXP(\d{10})\d{3}ARQ$/);
 
                   if (baseCodeMatch) {
                     const baseCode = baseCodeMatch[1];
-                    // Regex for current LPN: "EXP" + [same 10-digit code] + [3-digit counter] + "ARQ"
                     const lpnRegex = new RegExp(`^EXP${baseCode}\\d{3}ARQ$`);
                     isValidLpn = lpnRegex.test(currentLabel.lpn);
                   }
@@ -214,7 +206,6 @@ export default function OutboundReport({
 
                 return (
                   <tr>
-                    {/* Dynamic class for LPN format validation */}
                     <th
                       scope="row"
                       colSpan={2}

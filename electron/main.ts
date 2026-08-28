@@ -134,6 +134,52 @@ function getBoxTypesDatabasePath() {
   }
 }
 
+async function excelFileToObjectArray(path) {
+  const excelFileData: Array<any> = [];
+
+  try {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(path);
+
+    const worksheet = workbook.worksheets[0];
+
+    if (!worksheet) {
+      return;
+    }
+
+    let headers: string[] = [];
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) {
+        headers = (row.values as Array<any>).map((val) =>
+          String(val || "").trim(),
+        );
+      } else {
+        const rowObject: Record<string, any> = {};
+        const values = row.values as Array<any>;
+        headers.forEach((header, index) => {
+          if (header) {
+            rowObject[header] =
+              values[index] !== undefined ? values[index] : "";
+          }
+        });
+        excelFileData.push(rowObject);
+      }
+    });
+
+    return excelFileData;
+  } catch (error) {
+    return;
+  }
+}
+
+const calculatePalletsAndLeftovers = (totalBoxes: number, capacity: number) => {
+  const roundedBoxes = Math.round(totalBoxes * 1000) / 1000;
+  const pallets = Math.floor(roundedBoxes / capacity);
+  const boxesLeft = Math.round((roundedBoxes % capacity) * 10) / 10;
+  return { pallets, boxesLeft: Math.floor(boxesLeft) };
+};
+
 ipcMain.handle("get-printers", async () => {
   if (!win) return [];
   return await win.webContents.getPrintersAsync();
@@ -142,60 +188,72 @@ ipcMain.handle("get-printers", async () => {
 ipcMain.handle(
   "generate-case-id",
   async (_, priority, municipality, filePath) => {
-    const excelFileData: Array<any> = [];
+    const fileData = (await excelFileToObjectArray(filePath)) ?? [];
 
-    try {
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(filePath);
-
-      const worksheet = workbook.worksheets[0];
-      if (!worksheet) {
-        return { success: false, error: "Planilha vazia ou inválida." };
-      }
-
-      let headers: string[] = [];
-
-      worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) {
-          headers = (row.values as Array<any>).map((val) =>
-            String(val || "").trim(),
-          );
-        } else {
-          const rowObject: Record<string, any> = {};
-          const values = row.values as Array<any>;
-          headers.forEach((header, index) => {
-            if (header) {
-              rowObject[header] =
-                values[index] !== undefined ? values[index] : "";
-            }
-          });
-          excelFileData.push(rowObject);
-        }
-      });
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
-
-    if (excelFileData.length > 100) {
+    if (fileData.length === 0) {
       return {
         success: false,
-        error: "Limite de linhas excedido. Verifique o arquivo selecionado!",
+        error: "Ocorreu um erro ao processar o arquivo.",
       };
     }
 
-    const orderNumber = excelFileData[0]?.["Order Number"] || "";
-    let fullAmount = 0;
+    if (fileData.length > 100) {
+      return {
+        success: false,
+        error:
+          "Limite de linhas excedido.  Verifique se o arquivo selecionado é uma planilha de Pick Detail.",
+      };
+    }
+
+    const orderNumber = fileData[0]?.["Order Number"] || undefined;
+
+    if (!orderNumber) {
+      return {
+        success: false,
+        error: `Campo "Order Number" não encontrado! Verifique se o arquivo selecionado é uma planilha de Pick Detail.`,
+      };
+    }
+
+    const dbPath = getBoxTypesDatabasePath();
+    let db: Array<{ SKU: string; Type: string }> = [];
+
+    const getBoxTypeFromDb = (sku: string) => {
+      const foundBox: any = db.find((box: any) => box.SKU === sku);
+      return foundBox ? foundBox.Type : "";
+    };
+
+    try {
+      const fileData = fs.readFileSync(dbPath, "utf-8");
+      db = JSON.parse(fileData);
+    } catch (error: unknown) {
+      return { success: false, error: (error as Error).message };
+    }
 
     const orderData: Array<{
       item: string | number;
+      boxType: string;
       location: string | number;
       quantity: number;
       caseId: string | number;
     }> = [];
 
-    excelFileData.forEach((spreadsheetRow) => {
+    let fullAmount = 0;
+
+    let boxTotalBoxes = 0;
+    let sleeveTotalBoxes = 0;
+    let nineTotalBoxes = 0;
+    let fumoTotalBoxes = 0;
+
+    const getBaseGroup = (rawType: string) => {
+      const trimmed = rawType.trim().toUpperCase();
+      const firstSpace = trimmed.indexOf(" ");
+      return firstSpace === -1 ? trimmed : trimmed.substring(0, firstSpace);
+    };
+
+    fileData.forEach((spreadsheetRow) => {
       const quantityInRow = parseFloat(spreadsheetRow?.Quantity) || 0;
       const hasCartonType = spreadsheetRow?.["Carton Type"];
+      const sku = spreadsheetRow?.Item || "";
       const isPalletFull = () => {
         if (hasCartonType) {
           return (
@@ -211,72 +269,33 @@ ipcMain.handle(
       if (isPalletFull()) {
         fullAmount++;
       } else {
+        const dbType = getBoxTypeFromDb(sku);
+        const group = getBaseGroup(dbType);
+
+        switch (group) {
+          case "BOX":
+            boxTotalBoxes += quantityInRow / 10;
+            break;
+          case "SLIVE":
+            sleeveTotalBoxes += quantityInRow / 10;
+            break;
+          case "NINE":
+            nineTotalBoxes += quantityInRow / 10;
+            break;
+          case "FUMO":
+            fumoTotalBoxes += quantityInRow / 11.7;
+            break;
+        }
+
         orderData.push({
           item: spreadsheetRow?.Item || "",
+          boxType: dbType,
           location: spreadsheetRow?.Location || "",
           quantity: quantityInRow,
           caseId: spreadsheetRow?.["Case ID"] || "",
         });
       }
     });
-
-    const dbPath = getBoxTypesDatabasePath();
-    let db: Array<{ SKU: string; Type: string }> = [];
-
-    const getBoxTypeFromDb = (sku: string) => {
-      const foundBox: any = db.find((box: any) => box.SKU === sku);
-      return foundBox ? foundBox.Type : "";
-    };
-
-    try {
-      const fileData = fs.readFileSync(dbPath, "utf-8");
-      db = JSON.parse(fileData);
-    } catch (error: unknown) {
-      console.log("Failed to load box-types.json database:", error);
-      return { success: false, error: (error as Error).message };
-    }
-
-    let boxTotalBoxes = 0;
-    let sleeveTotalBoxes = 0;
-    let nineTotalBoxes = 0;
-    let fumoTotalBoxes = 0;
-
-    // Helper to normalize and get base group name up to the first space
-    const getBaseGroup = (rawType: string) => {
-      const trimmed = rawType.trim().toUpperCase();
-      const firstSpace = trimmed.indexOf(" ");
-      return firstSpace === -1 ? trimmed : trimmed.substring(0, firstSpace);
-    };
-
-    // Calculate totals across all rows
-    orderData.forEach((spreadsheetRow) => {
-      const qtyMil = Number(spreadsheetRow?.quantity) || 0;
-      const sku = String(spreadsheetRow?.item || "");
-      const dbType = getBoxTypeFromDb(sku);
-      const group = getBaseGroup(dbType);
-
-      if (group === "BOX") {
-        boxTotalBoxes += qtyMil / 10;
-      } else if (group === "SLIVE") {
-        sleeveTotalBoxes += qtyMil / 10;
-      } else if (group === "NINE") {
-        nineTotalBoxes += qtyMil / 10;
-      } else if (group === "FUMO") {
-        fumoTotalBoxes += qtyMil / 11.7;
-      }
-    });
-
-    const calculatePalletsAndLeftovers = (
-      totalBoxes: number,
-      capacity: number,
-    ) => {
-      // Round total boxes or keep precise fractions depending on your workflow;
-      // using Math.round handles slight floating-point imprecisions for box counts.
-      const roundedBoxes = Math.round(totalBoxes * 1000) / 1000;
-      const pallets = Math.floor(roundedBoxes / capacity);
-      const boxesLeft = Math.round((roundedBoxes % capacity) * 10) / 10; // optional rounding to 1 decimal if needed
-      return { pallets, boxesLeft: Math.floor(boxesLeft) }; // or keep exact remainder
-    };
 
     const boxCalc = calculatePalletsAndLeftovers(boxTotalBoxes, 40);
     const sleeveCalc = calculatePalletsAndLeftovers(sleeveTotalBoxes, 40);
@@ -291,11 +310,10 @@ ipcMain.handle(
     const nineBoxesLeft = nineCalc.boxesLeft;
     const fumoPalletTotal = fumoCalc.pallets;
     const fumoBoxesLeft = fumoCalc.boxesLeft;
-    // -------------------------------
 
     const sortedData = [...orderData].sort((a, b) => {
-      const typeA = getBoxTypeFromDb(a?.item.toString());
-      const typeB = getBoxTypeFromDb(b?.item.toString());
+      const typeA = a?.boxType;
+      const typeB = b?.boxType;
       const typeComparison = typeA.localeCompare(typeB);
 
       if (typeComparison !== 0) {
@@ -322,7 +340,7 @@ ipcMain.handle(
 
     for (let i = 0; i < sortedData.length; i++) {
       const item = sortedData[i];
-      const boxType = getBoxTypeFromDb(item?.item.toString());
+      const boxType = item.boxType || "";
       const sku = item?.item || "";
       const pos = item?.location || "";
       const qty = item?.quantity || "";
@@ -517,64 +535,39 @@ ipcMain.handle("print-html-content", async (_, htmlContent, printerName) => {
 });
 
 ipcMain.handle("generate-report", async (_, filePath) => {
-  const excelFileData: Array<any> = [];
-  const labelsMap = new Map<
-    string,
-    { lpn: string; items: Array<{ item: string; quantity: number }> }
-  >();
+  const fileData = (await excelFileToObjectArray(filePath)) ?? [];
+
+  if (fileData.length === 0) {
+    return {
+      success: false,
+      error: "Ocorreu um erro ao processar o arquivo.",
+    };
+  }
 
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
+    const labelsMap = new Map<
+      string,
+      { lpn: string; items: Array<{ item: string; quantity: number }> }
+    >();
 
-    const worksheet = workbook.worksheets[0];
-    if (!worksheet) {
-      return { success: false, error: "Planilha vazia ou inválida." };
-    }
-
-    let headers: string[] = [];
-
-    worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) {
-        headers = (row.values as Array<any>).map((val) =>
-          String(val || "").trim(),
-        );
-      } else {
-        const rowObject: Record<string, any> = {};
-        const values = row.values as Array<any>;
-        headers.forEach((header, index) => {
-          if (header) {
-            rowObject[header] =
-              values[index] !== undefined ? values[index] : "";
-          }
-        });
-        excelFileData.push(rowObject);
-      }
-    });
-
-    // Grouping by LPN and aggregating items + summing quantities
-    excelFileData.forEach((row) => {
+    fileData.forEach((row) => {
       const lpnKey = row?.LPN;
       const itemCode = row?.Item;
       const rowQuantity = parseFloat(row?.Quantity) || 0;
 
-      if (!lpnKey || !itemCode) return; // Skip if LPN or Item is missing
+      if (!lpnKey || !itemCode) return;
 
-      // 1. Ensure LPN group exists in the Map
       if (!labelsMap.has(lpnKey)) {
         labelsMap.set(lpnKey, { lpn: lpnKey, items: [] });
       }
 
       const lpnGroup = labelsMap.get(lpnKey)!;
 
-      // 2. Check if the item already exists in this LPN's items array
       const existingItem = lpnGroup.items.find((i) => i.item === itemCode);
 
       if (existingItem) {
-        // If it exists, sum the quantities
         existingItem.quantity += rowQuantity;
       } else {
-        // If it doesn't exist, add it as a new entry
         lpnGroup.items.push({
           item: itemCode,
           quantity: rowQuantity,
@@ -582,7 +575,6 @@ ipcMain.handle("generate-report", async (_, filePath) => {
       }
     });
 
-    // Convert Map back to an array and sort by LPN name alphabetically
     const labels = Array.from(labelsMap.values()).sort((a, b) =>
       a.lpn.localeCompare(b.lpn, undefined, {
         numeric: true,
