@@ -134,7 +134,7 @@ function getBoxTypesDatabasePath() {
   }
 }
 
-async function excelFileToObjectArray(path) {
+async function excelFileToObjectArray(path: string) {
   const excelFileData: Array<any> = [];
 
   try {
