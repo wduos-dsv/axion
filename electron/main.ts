@@ -587,11 +587,11 @@ ipcMain.handle("generate-report", async (_, filePath) => {
   }
 });
 
-ipcMain.handle("print-report", async (_, config) => {
+ipcMain.handle("print-full-report", async (_, config) => {
   try {
     const ip = config.ip || "10.55.22.240";
     const port = config.port || 9100;
-    const data = config?.data; // Expects allLabelContents array passed from frontend
+    const data = config?.data;
 
     if (!data || !Array.isArray(data) || data.length === 0) {
       return {
@@ -600,7 +600,6 @@ ipcMain.handle("print-report", async (_, config) => {
       };
     }
 
-    // Loop through all labels and send their corresponding ZPL commands
     for (const labelSet of data) {
       const lpn = labelSet.lpn;
       const items = labelSet.items || [];
@@ -608,6 +607,28 @@ ipcMain.handle("print-report", async (_, config) => {
       const zpl = genReportLabel(lpn, items);
       await sendZplOverTcp(ip, port, zpl, 5000);
     }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+});
+
+ipcMain.handle("print-report-label", async (_, config) => {
+  try {
+    const ip = config.ip || "10.55.22.240";
+    const port = config.port || 9100;
+    const data = config?.data;
+
+    if (!data || data.length === 0) {
+      return {
+        success: false,
+        error: "Sem dados extraídos do Pick Detail para impressão.",
+      };
+    }
+
+    const zpl = genReportLabel(data.lpn, data.items);
+    await sendZplOverTcp(ip, port, zpl, 5000);
 
     return { success: true };
   } catch (error) {

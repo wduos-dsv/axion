@@ -62237,6 +62237,12 @@ async function excelFileToObjectArray(path2) {
     return;
   }
 }
+const calculatePalletsAndLeftovers = (totalBoxes, capacity) => {
+  const roundedBoxes = Math.round(totalBoxes * 1e3) / 1e3;
+  const pallets = Math.floor(roundedBoxes / capacity);
+  const boxesLeft = Math.round(roundedBoxes % capacity * 10) / 10;
+  return { pallets, boxesLeft: Math.floor(boxesLeft) };
+};
 ipcMain.handle("get-printers", async () => {
   if (!win) return [];
   return await win.webContents.getPrintersAsync();
@@ -62246,10 +62252,10 @@ ipcMain.handle(
   async (_2, priority, municipality, filePath) => {
     var _a;
     const fileData = await excelFileToObjectArray(filePath) ?? [];
-    if (!fileData) {
+    if (fileData.length === 0) {
       return {
         success: false,
-        error: "Limite de linhas excedido.  Verifique se o arquivo selecionado é uma planilha de Pick Detail."
+        error: "Ocorreu um erro ao processar o arquivo."
       };
     }
     if (fileData.length > 100) {
@@ -62265,29 +62271,6 @@ ipcMain.handle(
         error: `Campo "Order Number" não encontrado! Verifique se o arquivo selecionado é uma planilha de Pick Detail.`
       };
     }
-    const orderData = [];
-    let fullAmount = 0;
-    fileData.forEach((spreadsheetRow) => {
-      const quantityInRow = parseFloat(spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity) || 0;
-      const hasCartonType = spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"];
-      const isPalletFull = () => {
-        if (hasCartonType) {
-          return (spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"]) === "PALLET" || (spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"]) === "SACO" && quantityInRow === 400;
-        } else {
-          return quantityInRow === 400 || quantityInRow === 360;
-        }
-      };
-      if (isPalletFull()) {
-        fullAmount++;
-      } else {
-        orderData.push({
-          item: (spreadsheetRow == null ? void 0 : spreadsheetRow.Item) || "",
-          location: (spreadsheetRow == null ? void 0 : spreadsheetRow.Location) || "",
-          quantity: quantityInRow,
-          caseId: (spreadsheetRow == null ? void 0 : spreadsheetRow["Case ID"]) || ""
-        });
-      }
-    });
     const dbPath = getBoxTypesDatabasePath();
     let db = [];
     const getBoxTypeFromDb = (sku) => {
@@ -62298,9 +62281,10 @@ ipcMain.handle(
       const fileData2 = require$$0$4.readFileSync(dbPath, "utf-8");
       db = JSON.parse(fileData2);
     } catch (error2) {
-      console.log("Failed to load box-types.json database:", error2);
       return { success: false, error: error2.message };
     }
+    const orderData = [];
+    let fullAmount = 0;
     let boxTotalBoxes = 0;
     let sleeveTotalBoxes = 0;
     let nineTotalBoxes = 0;
@@ -62310,27 +62294,45 @@ ipcMain.handle(
       const firstSpace = trimmed.indexOf(" ");
       return firstSpace === -1 ? trimmed : trimmed.substring(0, firstSpace);
     };
-    orderData.forEach((spreadsheetRow) => {
-      const qtyMil = Number(spreadsheetRow == null ? void 0 : spreadsheetRow.quantity) || 0;
-      const sku = String((spreadsheetRow == null ? void 0 : spreadsheetRow.item) || "");
-      const dbType = getBoxTypeFromDb(sku);
-      const group = getBaseGroup(dbType);
-      if (group === "BOX") {
-        boxTotalBoxes += qtyMil / 10;
-      } else if (group === "SLIVE") {
-        sleeveTotalBoxes += qtyMil / 10;
-      } else if (group === "NINE") {
-        nineTotalBoxes += qtyMil / 10;
-      } else if (group === "FUMO") {
-        fumoTotalBoxes += qtyMil / 11.7;
+    fileData.forEach((spreadsheetRow) => {
+      const quantityInRow = parseFloat(spreadsheetRow == null ? void 0 : spreadsheetRow.Quantity) || 0;
+      const hasCartonType = spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"];
+      const sku = (spreadsheetRow == null ? void 0 : spreadsheetRow.Item) || "";
+      const isPalletFull = () => {
+        if (hasCartonType) {
+          return (spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"]) === "PALLET" || (spreadsheetRow == null ? void 0 : spreadsheetRow["Carton Type"]) === "SACO" && quantityInRow === 400;
+        } else {
+          return quantityInRow === 400 || quantityInRow === 360;
+        }
+      };
+      if (isPalletFull()) {
+        fullAmount++;
+      } else {
+        const dbType = getBoxTypeFromDb(sku);
+        const group = getBaseGroup(dbType);
+        switch (group) {
+          case "BOX":
+            boxTotalBoxes += quantityInRow / 10;
+            break;
+          case "SLIVE":
+            sleeveTotalBoxes += quantityInRow / 10;
+            break;
+          case "NINE":
+            nineTotalBoxes += quantityInRow / 10;
+            break;
+          case "FUMO":
+            fumoTotalBoxes += quantityInRow / 11.7;
+            break;
+        }
+        orderData.push({
+          item: (spreadsheetRow == null ? void 0 : spreadsheetRow.Item) || "",
+          boxType: dbType,
+          location: (spreadsheetRow == null ? void 0 : spreadsheetRow.Location) || "",
+          quantity: quantityInRow,
+          caseId: (spreadsheetRow == null ? void 0 : spreadsheetRow["Case ID"]) || ""
+        });
       }
     });
-    const calculatePalletsAndLeftovers = (totalBoxes, capacity) => {
-      const roundedBoxes = Math.round(totalBoxes * 1e3) / 1e3;
-      const pallets = Math.floor(roundedBoxes / capacity);
-      const boxesLeft = Math.round(roundedBoxes % capacity * 10) / 10;
-      return { pallets, boxesLeft: Math.floor(boxesLeft) };
-    };
     const boxCalc = calculatePalletsAndLeftovers(boxTotalBoxes, 40);
     const sleeveCalc = calculatePalletsAndLeftovers(sleeveTotalBoxes, 40);
     const nineCalc = calculatePalletsAndLeftovers(nineTotalBoxes, 36);
@@ -62344,8 +62346,8 @@ ipcMain.handle(
     const fumoPalletTotal = fumoCalc.pallets;
     const fumoBoxesLeft = fumoCalc.boxesLeft;
     const sortedData = [...orderData].sort((a, b) => {
-      const typeA = getBoxTypeFromDb(a == null ? void 0 : a.item.toString());
-      const typeB = getBoxTypeFromDb(b == null ? void 0 : b.item.toString());
+      const typeA = a == null ? void 0 : a.boxType;
+      const typeB = b == null ? void 0 : b.boxType;
       const typeComparison = typeA.localeCompare(typeB);
       if (typeComparison !== 0) {
         return typeComparison;
@@ -62365,7 +62367,7 @@ ipcMain.handle(
     const processedRowsHtml = [];
     for (let i = 0; i < sortedData.length; i++) {
       const item = sortedData[i];
-      const boxType = getBoxTypeFromDb(item == null ? void 0 : item.item.toString());
+      const boxType = item.boxType || "";
       const sku = (item == null ? void 0 : item.item) || "";
       const pos = (item == null ? void 0 : item.location) || "";
       const qty = (item == null ? void 0 : item.quantity) || "";
@@ -62552,33 +62554,16 @@ ipcMain.handle("print-html-content", async (_2, htmlContent, printerName) => {
   }
 });
 ipcMain.handle("generate-report", async (_2, filePath) => {
-  const excelFileData = [];
-  const labelsMap = /* @__PURE__ */ new Map();
+  const fileData = await excelFileToObjectArray(filePath) ?? [];
+  if (fileData.length === 0) {
+    return {
+      success: false,
+      error: "Ocorreu um erro ao processar o arquivo."
+    };
+  }
   try {
-    const workbook2 = new ExcelJS.Workbook();
-    await workbook2.xlsx.readFile(filePath);
-    const worksheet2 = workbook2.worksheets[0];
-    if (!worksheet2) {
-      return { success: false, error: "Planilha vazia ou inválida." };
-    }
-    let headers2 = [];
-    worksheet2.eachRow((row2, rowNumber) => {
-      if (rowNumber === 1) {
-        headers2 = row2.values.map(
-          (val) => String(val || "").trim()
-        );
-      } else {
-        const rowObject = {};
-        const values = row2.values;
-        headers2.forEach((header, index2) => {
-          if (header) {
-            rowObject[header] = values[index2] !== void 0 ? values[index2] : "";
-          }
-        });
-        excelFileData.push(rowObject);
-      }
-    });
-    excelFileData.forEach((row2) => {
+    const labelsMap = /* @__PURE__ */ new Map();
+    fileData.forEach((row2) => {
       const lpnKey = row2 == null ? void 0 : row2.LPN;
       const itemCode = row2 == null ? void 0 : row2.Item;
       const rowQuantity = parseFloat(row2 == null ? void 0 : row2.Quantity) || 0;
@@ -62608,7 +62593,7 @@ ipcMain.handle("generate-report", async (_2, filePath) => {
     return { success: false, error: String(error2) };
   }
 });
-ipcMain.handle("print-report", async (_2, config) => {
+ipcMain.handle("print-full-report", async (_2, config) => {
   try {
     const ip = config.ip || "10.55.22.240";
     const port = config.port || 9100;
@@ -62625,6 +62610,24 @@ ipcMain.handle("print-report", async (_2, config) => {
       const zpl = genReportLabel(lpn, items);
       await sendZplOverTcp(ip, port, zpl, 5e3);
     }
+    return { success: true };
+  } catch (error2) {
+    return { success: false, error: String(error2) };
+  }
+});
+ipcMain.handle("print-report-label", async (_2, config) => {
+  try {
+    const ip = config.ip || "10.55.22.240";
+    const port = config.port || 9100;
+    const data = config == null ? void 0 : config.data;
+    if (!data || data.length === 0) {
+      return {
+        success: false,
+        error: "Sem dados extraídos do Pick Detail para impressão."
+      };
+    }
+    const zpl = genReportLabel(data.lpn, data.items);
+    await sendZplOverTcp(ip, port, zpl, 5e3);
     return { success: true };
   } catch (error2) {
     return { success: false, error: String(error2) };

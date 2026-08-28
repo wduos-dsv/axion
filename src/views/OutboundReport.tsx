@@ -22,6 +22,7 @@ export default function OutboundReport({
   printerPort,
   printerIP,
 }: PrinterInfo) {
+  const [printMode, setPrintMode] = useState<"full" | "single">("full");
   const [pickDetailFilePath, setPickDetailFilePath] = useState("");
   const [allLabelContents, setAllLabelContents] = useState<ReportLabelSet[]>(
     [],
@@ -89,24 +90,46 @@ export default function OutboundReport({
     }
 
     try {
-      const config = {
-        ip: printerIP,
-        port: printerPort,
-        data: allLabelContents,
-      };
+      if (printMode === "full") {
+        const config = {
+          ip: printerIP,
+          port: printerPort,
+          data: allLabelContents,
+        };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await (window as any).ipcRenderer.invoke(
-        "print-report",
-        config,
-      );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (window as any).ipcRenderer.invoke(
+          "print-full-report",
+          config,
+        );
 
-      if (result.success) {
-        setDisplayStatus("success");
-        setDisplayStatusMessage("Impressão do report concluída!");
+        if (result.success) {
+          setDisplayStatus("success");
+          setDisplayStatusMessage("Impressão do report concluída!");
+        } else {
+          setDisplayStatus("error");
+          setDisplayStatusMessage(`Erro ao imprimir report: ${result.error}`);
+        }
       } else {
-        setDisplayStatus("error");
-        setDisplayStatusMessage(`Erro ao imprimir report: ${result.error}`);
+        const config = {
+          ip: printerIP,
+          port: printerPort,
+          data: allLabelContents[currentLabelInView],
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (window as any).ipcRenderer.invoke(
+          "print-report-label",
+          config,
+        );
+
+        if (result.success) {
+          setDisplayStatus("success");
+          setDisplayStatusMessage("Impressão da etiqueta de report concluída!");
+        } else {
+          setDisplayStatus("error");
+          setDisplayStatusMessage(`Erro ao imprimir etiqueta: ${result.error}`);
+        }
       }
     } catch (error) {
       setDisplayStatus("error");
@@ -123,6 +146,30 @@ export default function OutboundReport({
         accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         onChange={(event) => handleReadPickDetailFile(event.target.files?.[0])}
       />
+
+      <small className="view-subtitle">Modo de Impressão</small>
+      <div className="flex-btns">
+        <button
+          type="button"
+          onClick={() => {
+            setPrintMode("full");
+            setDisplayStatusMessage("");
+          }}
+          className={printMode === "full" ? "active" : ""}
+        >
+          Sequência Completa
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setPrintMode("single");
+            setDisplayStatusMessage("");
+          }}
+          className={printMode === "single" ? "active" : ""}
+        >
+          Etiqueta Específica
+        </button>
+      </div>
 
       {allLabelContents.length > 0 && allLabelContents[currentLabelInView] && (
         <>
