@@ -6,6 +6,7 @@ import "./App.css";
 
 import icon from "./assets/logo.svg";
 import OutboundReport from "./views/OutboundReport";
+import LastMile from "./views/LastMile";
 
 export default function App() {
   const [zebraPrinterPort, setZebraPrinterPort] = useState<number>(9100);
@@ -49,7 +50,7 @@ export default function App() {
       element: <CaseID printer={selectedPrinter} />,
     },
     {
-      url: "/outbound-repot",
+      url: "/outbound-report",
       svg: (
         <svg viewBox="0 0 24 24">
           <path d="m24,10.5c0-3.033-2.468-5.5-5.5-5.5h-1.5v-.5c0-1.93-1.57-3.5-3.5-3.5H3.5C1.57,1,0,2.57,0,4.5v2.5h3v-2.5c0-.276.224-.5.5-.5h10c.275,0,.5.224.5.5v12.5H3v-3H0v6h3.061c-.034.162-.061.327-.061.5,0,1.381,1.119,2.5,2.5,2.5s2.5-1.119,2.5-2.5c0-.173-.027-.338-.061-.5h8.122c-.034.162-.061.327-.061.5,0,1.381,1.119,2.5,2.5,2.5s2.5-1.119,2.5-2.5c0-.173-.027-.338-.061-.5h3.061v-9.5Zm-5.5-2.5c1.379,0,2.5,1.122,2.5,2.5v2.5h-4v-5h1.5Zm-11.5,4H0v-3h7v-3l3.707,3.793c.39.391.39,1.024,0,1.414l-3.707,3.793v-3Z" />
@@ -61,6 +62,20 @@ export default function App() {
           printerPort={zebraPrinterPort}
           printerIP={zebraPrinterIP}
         />
+      ),
+    },
+    {
+      url: "/last-mile",
+      svg: (
+        <svg viewBox="0 0 24 24">
+          <path d="m17.985 10.857c.159.095.336.143.515.143s.356-.047.515-.143c.408-.245 3.985-2.475 3.985-5.357 0-2.439-2.061-4.5-4.5-4.5s-4.5 2.061-4.5 4.5c0 2.883 3.578 5.113 3.985 5.357z" />
+          <path d="m5.5 13c-2.439 0-4.5 2.061-4.5 4.5 0 2.883 3.578 5.113 3.985 5.357.159.095.336.143.515.143s.356-.047.515-.143c.408-.245 3.985-2.475 3.985-5.357 0-2.439-2.061-4.5-4.5-4.5z" />
+          <path d="m18.25 13.5h-4.25c-.276 0-.5-.224-.5-.5s.224-.5.5-.5c.829 0 1.5-.671 1.5-1.5s-.671-1.5-1.5-1.5c-1.93 0-3.5 1.57-3.5 3.5s1.57 3.5 3.5 3.5h4.25c.965 0 1.75.785 1.75 1.75s-.785 1.75-1.75 1.75h-7.25c-.829 0-1.5.671-1.5 1.5s.671 1.5 1.5 1.5h7.25c2.619 0 4.75-2.131 4.75-4.75s-2.131-4.75-4.75-4.75z" />
+        </svg>
+      ),
+      title: "Rotas Last Mile",
+      element: (
+        <LastMile printerPort={zebraPrinterPort} printerIP={zebraPrinterIP} />
       ),
     },
   ];

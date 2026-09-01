@@ -102,7 +102,7 @@ export default function CaseID({ printer }: printerInfo) {
       />
 
       <small className="view-subtitle">Município</small>
-      <div className="flex-btns">
+      <div className="flex-wrapper">
         <button
           type="button"
           onClick={() => setSelectedMunicipality("Itajaí")}

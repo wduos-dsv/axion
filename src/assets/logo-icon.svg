@@ -4,13 +4,17 @@
 <linearGradient id="Gradient_1" gradientUnits="userSpaceOnUse" x1="519.9875" y1="841.75" x2="572.6125" y2="841.75" spreadMethod="pad">
 <stop  offset="0%" stop-color="#646cff"/>
 
-<stop  offset="100%" stop-color="#6066dd"/>
+<stop  offset="100%" stop-color="#535bf2"/>
 </linearGradient>
 
 <linearGradient id="Gradient_2" gradientUnits="userSpaceOnUse" x1="523.3" y1="742.9" x2="436.7" y2="873.4" spreadMethod="pad">
-<stop  offset="0%" stop-color="#646cff"/>
+<stop  offset="0%" stop-color="#9499ff"/>
 
-<stop  offset="100%" stop-color="#6066dd"/>
+<stop  offset="30%" stop-color="#747bff"/>
+
+<stop  offset="50%" stop-color="#747bff"/>
+
+<stop  offset="100%" stop-color="#535bf2"/>
 </linearGradient>
 
 <g id="Layer0_0_FILL">

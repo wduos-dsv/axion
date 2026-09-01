@@ -211,18 +211,21 @@ tr:nth-child(odd) > td {
   font-weight: 500;
 }
 
-.flex-btns {
+.flex-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--spacing-3);
 }
-.flex-btns button {
+.flex-wrapper button {
   width: 100%;
 }
-.flex-btns button.active {
+.flex-wrapper button.active {
   background-color: var(--accent);
   color: white;
+}
+.flex-wrapper small {
+  width: 100%;
 }
 
 .main-process-btn {

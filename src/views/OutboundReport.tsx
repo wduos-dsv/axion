@@ -148,7 +148,7 @@ export default function OutboundReport({
       />
 
       <small className="view-subtitle">Modo de Impressão</small>
-      <div className="flex-btns">
+      <div className="flex-wrapper">
         <button
           type="button"
           onClick={() => {
@@ -176,7 +176,7 @@ export default function OutboundReport({
           <small className="view-subtitle">
             Etiquetas aguardando impressão
           </small>
-          <div className="flex-btns">
+          <div className="flex-wrapper">
             <button
               type="button"
               onClick={() => setCurrentLabelInView(currentLabelInView - 1)}
