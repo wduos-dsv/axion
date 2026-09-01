@@ -1,7 +1,7 @@
 {
   "name": "axion",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "Wendel Duarte dos Santos <wendel.santos1@dsv.com>",
   "description": "Auxiliar de tarefas administrativas DSV",
   "type": "module",
