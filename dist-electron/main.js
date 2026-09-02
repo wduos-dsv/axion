@@ -62125,7 +62125,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path$d.join(process.env.APP_ROOT
 let win;
 function createWindow() {
   win = new BrowserWindow({
-    frame: false,
+    // frame: false,
     icon: path$d.join(process.env.VITE_PUBLIC, "icon.png"),
     height: 550,
     minHeight: 550,
@@ -62137,7 +62137,6 @@ function createWindow() {
       contextIsolation: true
     }
   });
-  win.removeMenu();
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -62670,6 +62669,47 @@ ipcMain.handle("print-last-mile-label", async (_2, config) => {
     );
     await sendZplOverTcp(ip, port, zpl);
     return { success: true };
+  } catch (error2) {
+    return { success: false, error: error2.message };
+  }
+});
+ipcMain.handle("get-waves-from-shipment-order", async (_2, filePath) => {
+  const fileData = await excelFileToObjectArray(filePath) ?? [];
+  if (fileData.length === 0) {
+    return {
+      success: false,
+      error: "Ocorreu um erro ao processar o arquivo."
+    };
+  }
+  const waves = new Array();
+  try {
+    const wavesMap = /* @__PURE__ */ new Map();
+    fileData.forEach((row2) => {
+      const waveKey = row2 == null ? void 0 : row2["EXT_UDF_STR3"].split(" ")[1].split("_")[0];
+      if (!waveKey) return;
+      if (!wavesMap.has(waveKey)) {
+        wavesMap.set(waveKey, { orders: [] });
+      }
+      const waveGroup = wavesMap.get(waveKey);
+      const existingOrder = waveGroup.orders.find(
+        (o) => o.orderNumber === (row2 == null ? void 0 : row2["ORDERKEY"])
+      );
+      if (existingOrder) {
+        existingOrder.volumes += 1;
+      } else {
+        waveGroup.orders.push({
+          orderNumber: row2 == null ? void 0 : row2["ORDERKEY"],
+          customerName: row2 == null ? void 0 : row2["C_COMPANY"],
+          requestedShippingDate: row2 == null ? void 0 : row2["REQUESTEDSHIPDATE"],
+          city: row2 == null ? void 0 : row2["C_CITY"],
+          state: row2 == null ? void 0 : row2["C_STATE"],
+          shipmentNumber: row2 == null ? void 0 : row2["EXT_UDF_STR1"],
+          sequence: row2 == null ? void 0 : row2["EXT_UDF_STR4"],
+          volumes: 1
+        });
+      }
+    });
+    return { success: true, waves };
   } catch (error2) {
     return { success: false, error: error2.message };
   }

@@ -25,7 +25,7 @@ let win: BrowserWindow | null;
 
 function createWindow() {
   win = new BrowserWindow({
-    frame: false,
+    // frame: false,
     icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
     height: 550,
     minHeight: 550,
@@ -38,7 +38,7 @@ function createWindow() {
     },
   });
 
-  win.removeMenu();
+  // win.removeMenu();
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
@@ -691,6 +691,84 @@ ipcMain.handle("print-last-mile-label", async (_, config) => {
 
     return { success: true };
   } catch (error: unknown) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle("get-waves-from-shipment-order", async (_, filePath) => {
+  const fileData = (await excelFileToObjectArray(filePath)) ?? [];
+
+  if (fileData.length === 0) {
+    return {
+      success: false,
+      error: "Ocorreu um erro ao processar o arquivo.",
+    };
+  }
+
+  const waves = new Array<{
+    wave: string;
+    orders: Array<{
+      orderNumber: string;
+      customerName: string;
+      requestedShippingDate: string;
+      city: string;
+      state: string;
+      shipmentNumber: string;
+      sequence: string;
+      volumes: number;
+    }>;
+  }>();
+
+  try {
+    const wavesMap = new Map<
+      string,
+      {
+        orders: Array<{
+          orderNumber: string;
+          customerName: string;
+          requestedShippingDate: string;
+          city: string;
+          state: string;
+          shipmentNumber: string;
+          sequence: string;
+          volumes: number;
+        }>;
+      }
+    >();
+
+    fileData.forEach((row) => {
+      const waveKey = row?.["EXT_UDF_STR3"].split(" ")[1].split("_")[0];
+
+      if (!waveKey) return;
+
+      if (!wavesMap.has(waveKey)) {
+        wavesMap.set(waveKey, { orders: [] });
+      }
+
+      const waveGroup = wavesMap.get(waveKey)!;
+
+      const existingOrder = waveGroup.orders.find(
+        (o) => o.orderNumber === row?.["ORDERKEY"],
+      );
+
+      if (existingOrder) {
+        existingOrder.volumes += 1;
+      } else {
+        waveGroup.orders.push({
+          orderNumber: row?.["ORDERKEY"],
+          customerName: row?.["C_COMPANY"],
+          requestedShippingDate: row?.["REQUESTEDSHIPDATE"],
+          city: row?.["C_CITY"],
+          state: row?.["C_STATE"],
+          shipmentNumber: row?.["EXT_UDF_STR1"],
+          sequence: row?.["EXT_UDF_STR4"],
+          volumes: 1,
+        });
+      }
+    });
+
+    return { success: true, waves };
+  } catch (error) {
     return { success: false, error: (error as Error).message };
   }
 });

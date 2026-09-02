@@ -9,7 +9,6 @@ export default function CaseID({ printer }: printerInfo) {
   const [selectedMunicipality, setSelectedMunicipality] = useState<
     "Itajaí" | "Cachoeirinha" | "Passo Fundo"
   >("Itajaí");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pickDetailFilePath, setPickDetailFilePath] = useState("");
 
   const [displayStatus, setDisplayStatus] = useState<
@@ -102,7 +101,7 @@ export default function CaseID({ printer }: printerInfo) {
       />
 
       <small className="view-subtitle">Município</small>
-      <div className="flex-wrapper">
+      <div className="flex-btns">
         <button
           type="button"
           onClick={() => setSelectedMunicipality("Itajaí")}

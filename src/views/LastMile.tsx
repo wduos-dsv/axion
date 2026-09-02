@@ -24,10 +24,47 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
   const [shipNumber, setShipNumber] = useState("");
   const [rt, setRt] = useState("");
 
+  const [pickDetailFilePath, setPickDetailFilePath] = useState("");
+
   const [printStatus, setPrintStatus] = useState<
     "none" | "success" | "error" | "awaiting"
   >("none");
   const [printStatusMessage, setPrintStatusMessage] = useState("");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleReadPickDetailFile = async (file: any) => {
+    if (!file) {
+      setPickDetailFilePath("");
+      return;
+    }
+
+    try {
+      const filePath = file.path;
+      if (!filePath) {
+        throw new Error("Caminho do arquivo não encontrado.");
+      }
+
+      setPickDetailFilePath(file.path);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (window as any).ipcRenderer.invoke(
+        "get-waves-from-shipment-order",
+        file.path,
+      );
+
+      if (result.success) {
+        console.log(result.waves);
+      } else {
+        setPrintStatus("error");
+        setPrintStatusMessage(`Erro! ${result.error}`);
+      }
+    } catch (error) {
+      setPrintStatus("error");
+      setPrintStatusMessage(
+        `Erro ao processar o arquivo do Shipment Order: ${error}`,
+      );
+    }
+  };
 
   const handlePrint = async () => {
     setPrintStatus("awaiting");
@@ -87,7 +124,14 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
 
   return (
     <div>
-      <h2 className="view-title">Etiqueta de Last Mile</h2>
+      <h2 className="view-title">Impressão de Rotas Last Mile</h2>
+      <small className="view-subtitle">Arquivo do Shipment Order</small>
+      <input
+        type="file"
+        accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        onChange={(event) => handleReadPickDetailFile(event.target.files?.[0])}
+      />
+
       <div className="flex-wrapper">
         <small className="view-subtitle">Número da Rota</small>
         <small className="view-subtitle">Número da Ordem</small>
