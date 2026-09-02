@@ -62681,38 +62681,73 @@ ipcMain.handle("get-waves-from-shipment-order", async (_2, filePath) => {
       error: "Ocorreu um erro ao processar o arquivo."
     };
   }
-  const waves = new Array();
   try {
     const wavesMap = /* @__PURE__ */ new Map();
     fileData.forEach((row2) => {
-      const waveKey = row2 == null ? void 0 : row2["EXT_UDF_STR3"].split(" ")[1].split("_")[0];
+      var _a;
+      const extUdfStr3 = row2 == null ? void 0 : row2["EXT_UDF_STR3"];
+      if (!extUdfStr3) return;
+      const waveKey = (_a = extUdfStr3.split(" ")[1]) == null ? void 0 : _a.split("_")[0];
       if (!waveKey) return;
       if (!wavesMap.has(waveKey)) {
         wavesMap.set(waveKey, { orders: [] });
       }
       const waveGroup = wavesMap.get(waveKey);
-      const existingOrder = waveGroup.orders.find(
-        (o) => o.orderNumber === (row2 == null ? void 0 : row2["ORDERKEY"])
-      );
-      if (existingOrder) {
-        existingOrder.volumes += 1;
-      } else {
-        waveGroup.orders.push({
-          orderNumber: row2 == null ? void 0 : row2["ORDERKEY"],
-          customerName: row2 == null ? void 0 : row2["C_COMPANY"],
-          requestedShippingDate: row2 == null ? void 0 : row2["REQUESTEDSHIPDATE"],
-          city: row2 == null ? void 0 : row2["C_CITY"],
-          state: row2 == null ? void 0 : row2["C_STATE"],
-          shipmentNumber: row2 == null ? void 0 : row2["EXT_UDF_STR1"],
-          sequence: row2 == null ? void 0 : row2["EXT_UDF_STR4"],
-          volumes: 1
-        });
-      }
+      const orderKey = row2 == null ? void 0 : row2["ORDERKEY"];
+      waveGroup.orders.push({
+        orderNumber: orderKey,
+        customerName: row2 == null ? void 0 : row2["C_COMPANY"],
+        requestedShippingDate: row2 == null ? void 0 : row2["REQUESTEDSHIPDATE"],
+        city: row2 == null ? void 0 : row2["C_CITY"],
+        state: row2 == null ? void 0 : row2["C_STATE"],
+        shipmentNumber: row2 == null ? void 0 : row2["EXT_UDF_STR1"],
+        sequence: row2 == null ? void 0 : row2["EXT_UDF_STR4"]
+      });
     });
+    const waves = Array.from(wavesMap.entries()).map(([wave, data]) => ({
+      wave,
+      orders: data.orders
+    }));
     return { success: true, waves };
   } catch (error2) {
     return { success: false, error: error2.message };
   }
+});
+ipcMain.handle("get-data-from-pick-detail", async (_2, filePath) => {
+  const fileData = await excelFileToObjectArray(filePath) ?? [];
+  if (fileData.length === 0) {
+    return {
+      success: false,
+      error: "Ocorreu um erro ao processar o arquivo."
+    };
+  }
+  try {
+    const casesMap = /* @__PURE__ */ new Map();
+    fileData.forEach((row2) => {
+      const caseID = row2 == null ? void 0 : row2["CASEID"];
+      if (!caseID) return;
+      const caseIDKey = caseID.trim();
+      if (!caseIDKey) return;
+      if (!casesMap.has(caseIDKey)) {
+        casesMap.set(caseIDKey, {
+          cartonType: (row2 == null ? void 0 : row2["CARTONTYPE"]) || "",
+          orderNumber: (row2 == null ? void 0 : row2["ORDERKEY"]) || "",
+          volumes: 1
+        });
+      } else {
+        const existingCase = casesMap.get(caseIDKey);
+        existingCase.volumes += 1;
+      }
+    });
+    const cases = Array.from(casesMap.entries()).map(([caseID, data]) => ({
+      caseID,
+      ...data
+    }));
+    return { success: true, fileData: cases };
+  } catch (error2) {
+    return { success: false, error: error2.message };
+  }
+  return { success: true, fileData };
 });
 ipcMain.on("window-minimize", () => {
   win == null ? void 0 : win.minimize();

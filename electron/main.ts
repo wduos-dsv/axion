@@ -705,20 +705,6 @@ ipcMain.handle("get-waves-from-shipment-order", async (_, filePath) => {
     };
   }
 
-  const waves = new Array<{
-    wave: string;
-    orders: Array<{
-      orderNumber: string;
-      customerName: string;
-      requestedShippingDate: string;
-      city: string;
-      state: string;
-      shipmentNumber: string;
-      sequence: string;
-      volumes: number;
-    }>;
-  }>();
-
   try {
     const wavesMap = new Map<
       string,
@@ -731,14 +717,15 @@ ipcMain.handle("get-waves-from-shipment-order", async (_, filePath) => {
           state: string;
           shipmentNumber: string;
           sequence: string;
-          volumes: number;
         }>;
       }
     >();
 
     fileData.forEach((row) => {
-      const waveKey = row?.["EXT_UDF_STR3"].split(" ")[1].split("_")[0];
+      const extUdfStr3 = row?.["EXT_UDF_STR3"];
+      if (!extUdfStr3) return;
 
+      const waveKey = extUdfStr3.split(" ")[1]?.split("_")[0];
       if (!waveKey) return;
 
       if (!wavesMap.has(waveKey)) {
@@ -746,31 +733,77 @@ ipcMain.handle("get-waves-from-shipment-order", async (_, filePath) => {
       }
 
       const waveGroup = wavesMap.get(waveKey)!;
+      const orderKey = row?.["ORDERKEY"];
 
-      const existingOrder = waveGroup.orders.find(
-        (o) => o.orderNumber === row?.["ORDERKEY"],
-      );
-
-      if (existingOrder) {
-        existingOrder.volumes += 1;
-      } else {
-        waveGroup.orders.push({
-          orderNumber: row?.["ORDERKEY"],
-          customerName: row?.["C_COMPANY"],
-          requestedShippingDate: row?.["REQUESTEDSHIPDATE"],
-          city: row?.["C_CITY"],
-          state: row?.["C_STATE"],
-          shipmentNumber: row?.["EXT_UDF_STR1"],
-          sequence: row?.["EXT_UDF_STR4"],
-          volumes: 1,
-        });
-      }
+      waveGroup.orders.push({
+        orderNumber: orderKey,
+        customerName: row?.["C_COMPANY"],
+        requestedShippingDate: row?.["REQUESTEDSHIPDATE"],
+        city: row?.["C_CITY"],
+        state: row?.["C_STATE"],
+        shipmentNumber: row?.["EXT_UDF_STR1"],
+        sequence: row?.["EXT_UDF_STR4"],
+      });
     });
+
+    // Transform the map into the expected array structure
+    const waves = Array.from(wavesMap.entries()).map(([wave, data]) => ({
+      wave,
+      orders: data.orders,
+    }));
 
     return { success: true, waves };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
+});
+
+ipcMain.handle("get-data-from-pick-detail", async (_, filePath) => {
+  const fileData = (await excelFileToObjectArray(filePath)) ?? [];
+
+  if (fileData.length === 0) {
+    return {
+      success: false,
+      error: "Ocorreu um erro ao processar o arquivo.",
+    };
+  }
+
+  try {
+    const casesMap = new Map<
+      string,
+      { cartonType: string; orderNumber: string; volumes: number }
+    >();
+
+    fileData.forEach((row) => {
+      const caseID = row?.["CASEID"];
+      if (!caseID) return;
+
+      const caseIDKey = caseID.trim();
+      if (!caseIDKey) return;
+
+      if (!casesMap.has(caseIDKey)) {
+        casesMap.set(caseIDKey, {
+          cartonType: row?.["CARTONTYPE"] || "",
+          orderNumber: row?.["ORDERKEY"] || "",
+          volumes: 1,
+        });
+      } else {
+        const existingCase = casesMap.get(caseIDKey)!;
+        existingCase.volumes += 1;
+      }
+    });
+
+    const cases = Array.from(casesMap.entries()).map(([caseID, data]) => ({
+      caseID,
+      ...data,
+    }));
+
+    return { success: true, fileData: cases };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+
+  return { success: true, fileData: fileData };
 });
 
 // Window control handlers
