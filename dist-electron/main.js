@@ -62734,20 +62734,25 @@ ipcMain.handle("get-data-from-pick-detail", async (_2, filePath) => {
           orderNumber: (row2 == null ? void 0 : row2["ORDERKEY"]) || "",
           volumes: 1
         });
-      } else {
-        const existingCase = casesMap.get(caseIDKey);
-        existingCase.volumes += 1;
       }
+    });
+    const orderNumberCount = /* @__PURE__ */ new Map();
+    casesMap.forEach((data) => {
+      const orderNumber = data.orderNumber;
+      orderNumberCount.set(
+        orderNumber,
+        (orderNumberCount.get(orderNumber) || 0) + 1
+      );
     });
     const cases = Array.from(casesMap.entries()).map(([caseID, data]) => ({
       caseID,
-      ...data
+      ...data,
+      volumes: orderNumberCount.get(data.orderNumber) || 1
     }));
     return { success: true, fileData: cases };
   } catch (error2) {
     return { success: false, error: error2.message };
   }
-  return { success: true, fileData };
 });
 ipcMain.on("window-minimize", () => {
   win == null ? void 0 : win.minimize();

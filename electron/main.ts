@@ -787,23 +787,29 @@ ipcMain.handle("get-data-from-pick-detail", async (_, filePath) => {
           orderNumber: row?.["ORDERKEY"] || "",
           volumes: 1,
         });
-      } else {
-        const existingCase = casesMap.get(caseIDKey)!;
-        existingCase.volumes += 1;
       }
+    });
+
+    // Count cases by orderNumber and update volumes
+    const orderNumberCount = new Map<string, number>();
+    casesMap.forEach((data) => {
+      const orderNumber = data.orderNumber;
+      orderNumberCount.set(
+        orderNumber,
+        (orderNumberCount.get(orderNumber) || 0) + 1,
+      );
     });
 
     const cases = Array.from(casesMap.entries()).map(([caseID, data]) => ({
       caseID,
       ...data,
+      volumes: orderNumberCount.get(data.orderNumber) || 1,
     }));
 
     return { success: true, fileData: cases };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
-
-  return { success: true, fileData: fileData };
 });
 
 // Window control handlers

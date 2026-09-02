@@ -94,7 +94,15 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
       if (result.success) {
         setPickDetailData(result.fileData);
 
-        console.log(result.fileData);
+        result.fileData.forEach((row: any) => {
+          const thisOrderNumber = row?.orderNumber || "";
+
+          shipmentOrderData.forEach((shipmentRow: any) => {
+            if (shipmentRow.orderNumber === thisOrderNumber) {
+              console.log("here")
+            }
+          });
+
       } else {
         setPrintStatus("error");
         setPrintStatusMessage(`Erro! ${result.error}`);
@@ -175,12 +183,18 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
         }
       />
 
-      <small className="view-subtitle">Arquivo do Pick Detail</small>
-      <input
-        type="file"
-        accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        onChange={(event) => handleReadPickDetailFile(event.target.files?.[0])}
-      />
+      {shipmentOrderData.length > 0 && (
+        <>
+          <small className="view-subtitle">Arquivo do Pick Detail</small>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={(event) =>
+              handleReadPickDetailFile(event.target.files?.[0])
+            }
+          />
+        </>
+      )}
 
       <button
         className={
