@@ -8,7 +8,6 @@ interface PrinterInfo {
 export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
   const [shipmentOrderData, setShipmentOrderData] = useState<any[]>([]);
   const [waveList, setWaveList] = useState<any[]>([]);
-  const [waveOnScreenIndex, setWaveOnScreenIndex] = useState(0);
 
   const [printStatus, setPrintStatus] = useState<
     "none" | "success" | "error" | "awaiting"
@@ -68,8 +67,6 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
 
       if (result.success) {
         setWaveList(result.fileData);
-
-        console.log("waveList", result.fileData);
       } else {
         setPrintStatus("error");
         setPrintStatusMessage(`Erro! ${result.error}`);
@@ -82,7 +79,7 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
     }
   };
 
-  const handlePrint = async () => {
+  const handlePrint = async (waveIndex: number) => {
     setPrintStatus("awaiting");
 
     if (!waveList || !shipmentOrderData) {
@@ -97,12 +94,12 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
       const config = {
         ip: printerIP,
         port: printerPort,
-        route: waveList[waveOnScreenIndex],
+        route: waveList[waveIndex],
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (window as any).ipcRenderer.invoke(
-        "print-last-mile-labels",
+        "print-last-mile-wave",
         config,
       );
 
@@ -122,39 +119,85 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
   return (
     <div>
       <h2 className="view-title">Impressão de Rotas Last Mile</h2>
-      <small className="view-subtitle">Arquivo do Shipment Order</small>
-      <input
-        type="file"
-        accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        onChange={(event) =>
-          handleReadShipmentOrderFile(event.target.files?.[0])
-        }
-      />
-
-      {shipmentOrderData.length > 0 && (
-        <>
+      <div className="flex-wrapper">
+        <small className="view-subtitle">Arquivo do Shipment Order</small>
+        {shipmentOrderData.length > 0 && (
           <small className="view-subtitle">Arquivo do Pick Detail</small>
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            onChange={(event) =>
-              handleReadPickDetailFile(event.target.files?.[0])
-            }
-          />
+        )}
+      </div>
+      <div className="flex-wrapper">
+        <input
+          type="file"
+          accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          onChange={(event) =>
+            handleReadShipmentOrderFile(event.target.files?.[0])
+          }
+        />
+        {shipmentOrderData.length > 0 && (
+          <>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={(event) =>
+                handleReadPickDetailFile(event.target.files?.[0])
+              }
+            />
+          </>
+        )}
+      </div>
+
+      {waveList.length > 0 && (
+        <>
+          <table className="mrg-top-2">
+            <thead>
+              <tr>
+                <th scope="col">Rota</th>
+                <th scope="col">Ordens</th>
+                <th scope="col">Imprimir</th>
+              </tr>
+            </thead>
+            <tbody>
+              {waveList.map((wave, index) => (
+                <tr key={index}>
+                  <td>{wave.route}</td>
+                  <td>{wave.orders.length}</td>
+                  <td>
+                    <button
+                      className={
+                        printStatus === "awaiting"
+                          ? "table-btn disabled"
+                          : "table-btn"
+                      }
+                      onClick={() => {
+                        handlePrint(index);
+                      }}
+                      disabled={printStatus === "awaiting"}
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <rect x="5" width="14" height="5" />
+                        <rect x="6" y="15" width="12" height="9" />
+                        <path d="M21,7H3a3,3,0,0,0-3,3V20H4V13H20v7h4V10A3,3,0,0,0,21,7Zm-2,4H15V9h4Z" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ textAlign: "left" }}>
+                <th scope="row" className="accent">
+                  {waveList.length} ROTAS
+                </th>
+                <th scope="row" className="accent">
+                  {waveList.reduce((sum, wave) => sum + wave.orders.length, 0)}{" "}
+                  REMESSAS
+                </th>
+              </tr>
+            </tfoot>
+          </table>
         </>
       )}
 
-      <button
-        className={
-          printStatus === "awaiting"
-            ? "main-process-btn disabled"
-            : "main-process-btn"
-        }
-        onClick={handlePrint}
-        disabled={printStatus === "awaiting"}
-      >
-        Iniciar Impressão
-      </button>
       {printStatus === "success" ? (
         <small className="mrg-top-3 text-xs center green">
           {printStatusMessage}

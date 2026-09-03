@@ -25,7 +25,7 @@ let win: BrowserWindow | null;
 
 function createWindow() {
   win = new BrowserWindow({
-    // frame: false,
+    frame: false,
     icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
     height: 550,
     minHeight: 550,
@@ -39,8 +39,8 @@ function createWindow() {
     },
   });
 
-  // win.removeMenu();
-  win.webContents.openDevTools();
+  win.removeMenu();
+  // win.webContents.openDevTools();
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
@@ -185,7 +185,7 @@ const calculatePalletsAndLeftovers = (totalBoxes: number, capacity: number) => {
 function genLastMileZpl(
   trackNumber: number,
   packType: string,
-  thisVolume: string,
+  thisVolume: number,
   totalVolumes: string,
   sequence: string,
   qrDataString: string,
@@ -197,7 +197,11 @@ function genLastMileZpl(
   shipNumber: number,
   rt: string,
 ): string {
-  return `^XA~TA000~JSN^LT0^MNW^MMT^LH0,0^PR4,4~SD10^CI27^MMT^PW815^LL416^LS0^FT700,271^A0N,23,24^FH\^FDEsteira ${trackNumber}^FS^FT45,56^A0N,28,28^FH\^FDENTREGA: ${deliveryDate}^FS^FT45,149^A0N,28,31^FH\^FDORDER ${order}^FS^FT45,323^A0N,28,28^FH\^FDCLIENTE: ${customerName}^FS^FT700,51^A0N,23,24^FH\^FDNF seq:^FS^FT414,258^ADN,18,10^FH\^FD${qrDataString}^FS^FT45,189^A0N,28,31^FB215,1,0,R^FH\^FD${location}^FS^FT700,106^A0N,56,57^FH\^FD${sequence}^FS^FT464,258^BQN,2,7^FH\^FDLA,${qrDataString}^FS^FT48,383^A0N,39,40^FH\^FDSHIP:${shipNumber}^FS^FT620,383^A0N,39,40^FH\^FDRT:${rt}^FS^FT700,135^A0N,23,24^FH\^FDVolume:^FS^FT700,171^A0N,37,38^FH\^FD${thisVolume}/${totalVolumes}^FS^FT700,208^A0N,23,24^FH\^FDEmb:^FS^FT700,239^A0N,31,33^FH\^FD${packType}^FS^FT45,107^A0N,45,50^FH\^FDROTA ${route}^FS^BY2,3,63^FT45,267^BCN,,N,N^FD>;${order}^FS^FT45,284^ADN,18,10^FH\^FD${order}^FS^LRY^FO0,341^GB815,0,50^FS^LRN^LRY^FO682,0^GB0,287,118^FS^LRN^PQ1,0,1,Y^XZ`;
+  if (packType === "CASE") {
+    return `^XA~TA000~JSN^LT0^MNW^MMT^LH0,0^PR4,4~SD10^CI27^MMT^PW815^LL416^LS0^FT700,271^A0N,23,24^FH\^FDEsteira ${trackNumber}^FS^FT45,56^A0N,28,28^FH\^FDENTREGA: ${deliveryDate}^FS^FT45,149^A0N,28,31^FH\^FDORDER ${order}^FS^FT45,323^A0N,28,28^FH\^FDCLIENTE: ${customerName}^FS^FT700,51^A0N,23,24^FH\^FDNF seq:^FS^FT414,258^ADN,18,10^FH\^FD${qrDataString}^FS^FT45,189^A0N,28,31^FB215,1,0,R^FH\^FD${location}^FS^FT700,106^A0N,56,57^FH\^FD${sequence}^FS^FT464,258^BQN,2,7^FH\^FDLA,${qrDataString}^FS^FT48,383^A0N,39,40^FH\^FDSHIP:${shipNumber}^FS^FT620,383^A0N,39,40^FH\^FDRT:${rt}^FS^FT700,135^A0N,23,24^FH\^FDVolume:^FS^FT700,171^A0N,37,38^FH\^FD${thisVolume}/${totalVolumes}^FS^FT700,208^A0N,23,24^FH\^FDEmb:^FS^FT700,239^A0N,31,33^FH\^FD${packType}^FS^FT45,107^A0N,45,50^FH\^FDROTA ${route}^FS^BY2,3,63^FT45,267^BCN,,N,N^FD>;${order}^FS^FT45,284^ADN,18,10^FH\^FD${order}^FS^LRY^FO0,341^GB815,0,50^FS^LRN^LRY^FO682,0^GB0,287,118^FS^LRN^PQ1,0,1,Y^XZ`;
+  }
+
+  return `^XA~TA000~JSN^LT0^MNW^MMT^LH0,0^PR4,4~SD10^CI27^MMT^PW815^LL416^LS0^FT700,271^A0N,23,24^FH\^FDEsteira ${trackNumber}^FS^FT45,56^A0N,28,28^FH\^FDENTREGA: ${deliveryDate}^FS^FT45,149^A0N,28,31^FH\^FDORDER ${order}^FS^FT45,323^A0N,28,28^FH\^FDCLIENTE: ${customerName}^FS^FT700,51^A0N,23,24^FH\^FDNF seq:^FS^FT414,258^ADN,18,10^FH\^FD${qrDataString}^FS^FT45,189^A0N,28,31^FB215,1,0,R^FH\^FD${location}^FS^FT700,106^A0N,56,57^FH\^FD${sequence}^FS^FT464,258^BQN,2,7^FH\^FDLA,${qrDataString}^FS^FT48,383^A0N,39,40^FH\^FDSHIP:${shipNumber}^FS^FT620,383^A0N,39,40^FH\^FDRT:${rt}^FS^FT700,135^A0N,23,24^FH\^FDVolume:^FS^FT700,171^A0N,37,38^FH\^FD${thisVolume}/${totalVolumes}^FS^FT700,208^A0N,23,24^FH\^FDEmb:^FS^FT700,239^A0N,31,33^FH\^FD${packType}^FS^FT45,107^A0N,45,50^FH\^FDROTA ${route}^FS^LRY^FO0,341^GB815,0,50^FS^LRN^LRY^FO682,0^GB0,287,118^FS^LRN^PQ1,0,1,Y^XZ`;
 }
 
 ipcMain.handle("get-printers", async () => {
@@ -828,25 +832,27 @@ ipcMain.handle(
       }));
 
       for (let i = 0; i < shipmentData.length - 1; i++) {
-        processedData[i] = { route: shipmentData[i + 1]?.wave, orders: [] };
+        const waveData = shipmentData[i + 1];
+        if (!waveData) continue;
 
-        for (let y = 0; y < shipmentData[i + 1].orders.length; y++) {
-          const order = shipmentData[i + 1].orders[y];
+        const routeOrders = waveData.orders.map((order) => {
+          const matchingCases = cases
+            .filter((caseRow) => caseRow.orderNumber === order.orderNumber)
+            .map((caseRow) => ({
+              caseID: caseRow.caseID,
+              packageType: caseRow.cartonType,
+            }));
 
-          cases.forEach((caseRow) => {
-            if (order.orderNumber === caseRow.orderNumber) {
-              processedData[i].orders.push({
-                ...order,
-                cases: [
-                  {
-                    caseID: caseRow.caseID,
-                    packageType: caseRow.cartonType,
-                  },
-                ],
-              });
-            }
-          });
-        }
+          return {
+            ...order,
+            cases: matchingCases,
+          };
+        });
+
+        processedData.push({
+          route: waveData.wave,
+          orders: routeOrders,
+        });
       }
 
       return { success: true, fileData: processedData };
@@ -855,6 +861,49 @@ ipcMain.handle(
     }
   },
 );
+
+ipcMain.handle("print-last-mile-wave", async (_, config) => {
+  try {
+    const ip = config.ip || "10.55.22.240";
+    const port = config.port || 9100;
+    const waveData = config.route;
+
+    // Sort orders by sequence number ascending
+    const sortedOrders = [...waveData.orders].sort((a, b) => {
+      return (a.sequence || 0) - (b.sequence || 0);
+    });
+
+    for (const order of sortedOrders) {
+      const cleanShippingDate = order.requestedShippingDate
+        ? order.requestedShippingDate.replace(/\u202F/g, " ")
+        : "";
+
+      for (const [index, caseData] of order.cases.entries()) {
+        const zpl = genLastMileZpl(
+          1,
+          caseData.packageType,
+          index + 1,
+          order.cases.length,
+          order.sequence,
+          `${order.orderNumber}:${caseData.caseID}`,
+          cleanShippingDate,
+          waveData.route,
+          parseInt(order.orderNumber, 10),
+          `${order.city} - ${order.state}`,
+          order.customerName,
+          order.shipmentNumber,
+          "EX07",
+        );
+
+        await sendZplOverTcp(ip, port, zpl, 5000);
+      }
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: (error as Error).message };
+  }
+});
 
 // Window control handlers
 ipcMain.on("window-minimize", () => {

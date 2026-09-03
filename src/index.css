@@ -260,6 +260,26 @@ tr:nth-child(odd) > td {
   color: var(--gray-2);
 }
 
+.table-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  background-color: var(--accent) !important;
+  padding: unset !important;
+  border-radius: var(--radius-2);
+  transition: background-color 0.2s ease-out;
+}
+.table-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.table-btn svg {
+  width: 0.7rem;
+  height: 0.7rem;
+  fill: white;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     --text: #272147;
