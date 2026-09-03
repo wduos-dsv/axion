@@ -31,6 +31,7 @@ function createWindow() {
     minHeight: 550,
     width: 750,
     minWidth: 750,
+
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
       nodeIntegration: false,
@@ -39,6 +40,7 @@ function createWindow() {
   });
 
   // win.removeMenu();
+  win.webContents.openDevTools();
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
@@ -765,16 +767,18 @@ ipcMain.handle(
     const fileData = (await excelFileToObjectArray(filePath)) ?? [];
     const processedData: Array<{
       route: string;
-      orderNumber: string;
-      customerName: string;
-      deliveryDate: string;
-      location: string;
-      shipNumber: string;
-      sequence: string;
-      lpn: string;
-      cases: Array<{
-        caseID: string;
-        packageType: string;
+      orders: Array<{
+        orderNumber: string;
+        customerName: string;
+        deliveryDate: string;
+        location: string;
+        shipNumber: string;
+        sequence: string;
+        lpn: string;
+        cases: Array<{
+          caseID: string;
+          packageType: string;
+        }>;
       }>;
     }> = [];
 
@@ -823,30 +827,27 @@ ipcMain.handle(
         volumes: orderNumberCount.get(data.orderNumber) || 1,
       }));
 
-      cases.forEach((caseRow) => {
-        shipmentData.forEach((wave) => {
-          wave.orders.forEach((order) => {
+      for (let i = 0; i < shipmentData.length - 1; i++) {
+        processedData[i] = { route: shipmentData[i + 1]?.wave, orders: [] };
+
+        for (let y = 0; y < shipmentData[i + 1].orders.length; y++) {
+          const order = shipmentData[i + 1].orders[y];
+
+          cases.forEach((caseRow) => {
             if (order.orderNumber === caseRow.orderNumber) {
-              processedData.push({
-                route: wave.wave,
-                orderNumber: order.orderNumber,
-                customerName: order.customerName,
-                deliveryDate: order.requestedShippingDate,
-                location: `${order.city} - ${order.state}`,
-                shipNumber: order.shipmentNumber,
-                sequence: order.sequence,
-                lpn: `${order.orderNumber}:${caseRow.caseID}`,
+              processedData[i].orders.push({
+                ...order,
                 cases: [
                   {
-                    caseID: caseRow?.orderNumber,
-                    packageType: caseRow?.cartonType,
+                    caseID: caseRow.caseID,
+                    packageType: caseRow.cartonType,
                   },
                 ],
               });
             }
           });
-        });
-      });
+        }
+      }
 
       return { success: true, fileData: processedData };
     } catch (error) {

@@ -62137,6 +62137,7 @@ function createWindow() {
       contextIsolation: true
     }
   });
+  win.webContents.openDevTools();
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -62716,6 +62717,7 @@ ipcMain.handle("get-waves-from-shipment-order", async (_2, filePath) => {
 ipcMain.handle(
   "get-data-from-pick-detail",
   async (_2, filePath, shipmentOrderData) => {
+    var _a;
     const shipmentData = shipmentOrderData;
     const fileData = await excelFileToObjectArray(filePath) ?? [];
     const processedData = [];
@@ -62753,30 +62755,25 @@ ipcMain.handle(
         ...data,
         volumes: orderNumberCount.get(data.orderNumber) || 1
       }));
-      cases.forEach((caseRow) => {
-        shipmentData.forEach((wave) => {
-          wave.orders.forEach((order) => {
+      for (let i = 0; i < shipmentData.length - 1; i++) {
+        processedData[i] = { route: (_a = shipmentData[i + 1]) == null ? void 0 : _a.wave, orders: [] };
+        for (let y = 0; y < shipmentData[i + 1].orders.length; y++) {
+          const order = shipmentData[i + 1].orders[y];
+          cases.forEach((caseRow) => {
             if (order.orderNumber === caseRow.orderNumber) {
-              processedData.push({
-                route: wave.wave,
-                orderNumber: order.orderNumber,
-                customerName: order.customerName,
-                deliveryDate: order.requestedShippingDate,
-                location: `${order.city} - ${order.state}`,
-                shipNumber: order.shipmentNumber,
-                sequence: order.sequence,
-                lpn: `${order.orderNumber}:${caseRow.caseID}`,
+              processedData[i].orders.push({
+                ...order,
                 cases: [
                   {
-                    caseID: caseRow == null ? void 0 : caseRow.orderNumber,
-                    packageType: caseRow == null ? void 0 : caseRow.cartonType
+                    caseID: caseRow.caseID,
+                    packageType: caseRow.cartonType
                   }
                 ]
               });
             }
           });
-        });
-      });
+        }
+      }
       return { success: true, fileData: processedData };
     } catch (error2) {
       return { success: false, error: error2.message };
