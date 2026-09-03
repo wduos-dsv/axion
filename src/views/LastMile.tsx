@@ -6,27 +6,9 @@ interface PrinterInfo {
 }
 
 export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
-  const [routeNumber, setRouteNumber] = useState("");
-  const [orderNumber, setOrderNumber] = useState<number>();
-  const [customerName, setCustomerName] = useState("");
-  const [qrDataString, setQrDataString] = useState("");
-  const [deliveryDate, setDeliveryDate] = useState(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split("T")[0];
-  });
-  const [location, setLocation] = useState("");
-  const [sequence, setSequence] = useState("001");
-  const [trackNumber, setTrackNumber] = useState<number>(1);
-  const [packType, setPackType] = useState("");
-  const [thisVolume, setThisVolume] = useState<number>(1);
-  const [totalVolumes, setTotalVolumes] = useState<number>(1);
-  const [shipNumber, setShipNumber] = useState("");
-  const [rt, setRt] = useState("");
   const [shipmentOrderData, setShipmentOrderData] = useState<any[]>([]);
-  const [pickDetailData, setPickDetailData] = useState<any[]>([]);
-
-  const [pickDetailFilePath, setPickDetailFilePath] = useState("");
+  const [waveList, setWaveList] = useState<any[]>([]);
+  const [waveOnScreenIndex, setWaveOnScreenIndex] = useState(0);
 
   const [printStatus, setPrintStatus] = useState<
     "none" | "success" | "error" | "awaiting"
@@ -36,7 +18,6 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleReadShipmentOrderFile = async (file: any) => {
     if (!file) {
-      setPickDetailFilePath("");
       return;
     }
 
@@ -46,8 +27,6 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
         throw new Error("Caminho do arquivo não encontrado.");
       }
 
-      setPickDetailFilePath(file.path);
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (window as any).ipcRenderer.invoke(
         "get-waves-from-shipment-order",
@@ -56,8 +35,6 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
 
       if (result.success) {
         setShipmentOrderData(result.waves);
-
-        console.log(result.waves);
       } else {
         setPrintStatus("error");
         setPrintStatusMessage(`Erro! ${result.error}`);
@@ -73,7 +50,6 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleReadPickDetailFile = async (file: any) => {
     if (!file) {
-      setPickDetailFilePath("");
       return;
     }
 
@@ -83,26 +59,17 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
         throw new Error("Caminho do arquivo não encontrado.");
       }
 
-      setPickDetailFilePath(file.path);
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (window as any).ipcRenderer.invoke(
         "get-data-from-pick-detail",
         file.path,
+        shipmentOrderData,
       );
 
       if (result.success) {
-        setPickDetailData(result.fileData);
+        setWaveList(result.fileData);
 
-        result.fileData.forEach((row: any) => {
-          const thisOrderNumber = row?.orderNumber || "";
-
-          shipmentOrderData.forEach((shipmentRow: any) => {
-            if (shipmentRow.orderNumber === thisOrderNumber) {
-              console.log("here")
-            }
-          });
-
+        console.log("waveList", result.fileData);
       } else {
         setPrintStatus("error");
         setPrintStatusMessage(`Erro! ${result.error}`);
@@ -118,18 +85,11 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
   const handlePrint = async () => {
     setPrintStatus("awaiting");
 
-    if (
-      !routeNumber ||
-      !orderNumber ||
-      !customerName ||
-      !qrDataString ||
-      !location ||
-      !packType ||
-      !shipNumber ||
-      !rt
-    ) {
+    if (!waveList || !shipmentOrderData) {
       setPrintStatus("error");
-      setPrintStatusMessage("Preencha todos os campos!");
+      setPrintStatusMessage(
+        "Selecione os arquivos do Shipment Order e Pick Detail antes de imprimir.",
+      );
       return;
     }
 
@@ -137,24 +97,12 @@ export default function LastMile({ printerPort, printerIP }: PrinterInfo) {
       const config = {
         ip: printerIP,
         port: printerPort,
-        trackNumber,
-        packType,
-        thisVolume,
-        totalVolumes,
-        sequence,
-        qrDataString,
-        deliveryDate: `${deliveryDate.replace(/-/g, "/")} 08:00 AM`,
-        routeNumber,
-        orderNumber,
-        location,
-        customerName,
-        shipNumber,
-        rt,
+        route: waveList[waveOnScreenIndex],
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (window as any).ipcRenderer.invoke(
-        "print-last-mile-label",
+        "print-last-mile-labels",
         config,
       );
 

@@ -758,59 +758,102 @@ ipcMain.handle("get-waves-from-shipment-order", async (_, filePath) => {
   }
 });
 
-ipcMain.handle("get-data-from-pick-detail", async (_, filePath) => {
-  const fileData = (await excelFileToObjectArray(filePath)) ?? [];
+ipcMain.handle(
+  "get-data-from-pick-detail",
+  async (_, filePath, shipmentOrderData) => {
+    const shipmentData = shipmentOrderData;
+    const fileData = (await excelFileToObjectArray(filePath)) ?? [];
+    const processedData: Array<{
+      route: string;
+      orderNumber: string;
+      customerName: string;
+      deliveryDate: string;
+      location: string;
+      shipNumber: string;
+      sequence: string;
+      lpn: string;
+      cases: Array<{
+        caseID: string;
+        packageType: string;
+      }>;
+    }> = [];
 
-  if (fileData.length === 0) {
-    return {
-      success: false,
-      error: "Ocorreu um erro ao processar o arquivo.",
-    };
-  }
+    if (fileData.length === 0) {
+      return {
+        success: false,
+        error: "Ocorreu um erro ao processar o arquivo.",
+      };
+    }
 
-  try {
-    const casesMap = new Map<
-      string,
-      { cartonType: string; orderNumber: string; volumes: number }
-    >();
+    try {
+      const casesMap = new Map<
+        string,
+        { cartonType: string; orderNumber: string; volumes: number }
+      >();
 
-    fileData.forEach((row) => {
-      const caseID = row?.["CASEID"];
-      if (!caseID) return;
+      fileData.forEach((row) => {
+        const caseID = row?.["CASEID"];
+        if (!caseID) return;
 
-      const caseIDKey = caseID.trim();
-      if (!caseIDKey) return;
+        const caseIDKey = caseID.trim();
+        if (!caseIDKey) return;
 
-      if (!casesMap.has(caseIDKey)) {
-        casesMap.set(caseIDKey, {
-          cartonType: row?.["CARTONTYPE"] || "",
-          orderNumber: row?.["ORDERKEY"] || "",
-          volumes: 1,
+        if (!casesMap.has(caseIDKey)) {
+          casesMap.set(caseIDKey, {
+            cartonType: row?.["CARTONTYPE"] || "",
+            orderNumber: row?.["ORDERKEY"] || "",
+            volumes: 1,
+          });
+        }
+      });
+
+      // Count cases by orderNumber and update volumes
+      const orderNumberCount = new Map<string, number>();
+      casesMap.forEach((data) => {
+        const orderNumber = data.orderNumber;
+        orderNumberCount.set(
+          orderNumber,
+          (orderNumberCount.get(orderNumber) || 0) + 1,
+        );
+      });
+
+      const cases = Array.from(casesMap.entries()).map(([caseID, data]) => ({
+        caseID,
+        ...data,
+        volumes: orderNumberCount.get(data.orderNumber) || 1,
+      }));
+
+      cases.forEach((caseRow) => {
+        shipmentData.forEach((wave) => {
+          wave.orders.forEach((order) => {
+            if (order.orderNumber === caseRow.orderNumber) {
+              processedData.push({
+                route: wave.wave,
+                orderNumber: order.orderNumber,
+                customerName: order.customerName,
+                deliveryDate: order.requestedShippingDate,
+                location: `${order.city} - ${order.state}`,
+                shipNumber: order.shipmentNumber,
+                sequence: order.sequence,
+                lpn: `${order.orderNumber}:${caseRow.caseID}`,
+                cases: [
+                  {
+                    caseID: caseRow?.orderNumber,
+                    packageType: caseRow?.cartonType,
+                  },
+                ],
+              });
+            }
+          });
         });
-      }
-    });
+      });
 
-    // Count cases by orderNumber and update volumes
-    const orderNumberCount = new Map<string, number>();
-    casesMap.forEach((data) => {
-      const orderNumber = data.orderNumber;
-      orderNumberCount.set(
-        orderNumber,
-        (orderNumberCount.get(orderNumber) || 0) + 1,
-      );
-    });
-
-    const cases = Array.from(casesMap.entries()).map(([caseID, data]) => ({
-      caseID,
-      ...data,
-      volumes: orderNumberCount.get(data.orderNumber) || 1,
-    }));
-
-    return { success: true, fileData: cases };
-  } catch (error) {
-    return { success: false, error: (error as Error).message };
-  }
-});
+      return { success: true, fileData: processedData };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  },
+);
 
 // Window control handlers
 ipcMain.on("window-minimize", () => {
