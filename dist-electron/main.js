@@ -62807,7 +62807,7 @@ ipcMain.handle("print-last-mile-wave", async (_2, config) => {
           order.shipmentNumber,
           "EX07"
         );
-        console.log(cleanShippingDate);
+        await sendZplOverTcp(ip, port, zpl, 5e3);
       }
     }
     return { success: true };

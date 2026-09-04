@@ -835,7 +835,7 @@ ipcMain.handle(
         const waveData = shipmentData[i + 1];
         if (!waveData) continue;
 
-        const routeOrders = waveData.orders.map((order) => {
+        const routeOrders = waveData.orders.map((order: any) => {
           const matchingCases = cases
             .filter((caseRow) => caseRow.orderNumber === order.orderNumber)
             .map((caseRow) => ({
