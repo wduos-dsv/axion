@@ -217,6 +217,9 @@ tr:nth-child(odd) > td {
   justify-content: center;
   gap: var(--spacing-3);
 }
+.flex-wrapper small {
+  margin-top: var(--spacing-3);
+}
 .flex-wrapper button {
   width: 100%;
 }
